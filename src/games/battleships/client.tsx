@@ -1,148 +1,91 @@
 'use client';
 
-import { client } from '../../client';
-import { Utils } from '../../utils';
+import { TClientContext } from '../../client/types';
 
-const battleshipsStart = async (board: Record<string, number>) => {
-  try {
-    const pk = await isLoggedIn();
+export class BattleshipsClient {
+  constructor(private readonly context: TClientContext) { }
 
-    if (!pk) throw new Error('Logged in failed : not logged in.');
+  async start(board: string) {
+    try {
+      const nonce = this.context.z32_encode(this.context.randomBytes());
+      const id = this.context.z32_encode(this.context.randomBytes(8));
 
-    await client.ready();
+      const initialBoardHash = await this.context.hash(board);
+      const currentBoardHash = await this.context.hash(initialBoardHash + "/" + nonce);
 
-    const seed = await client.crypto.generateSeed();
-    const keypair = client.crypto.generateKeyPair(seed);
-    const publicKey = client.z32.encode(keypair.publicKey);
-
-    Utils.storage.set('b_public_key', keypair.publicKey);
-    Utils.storage.set('b_secret_key', keypair.secretKey);
-    setBPublicKey(keypair.publicKey);
-    setBSecretKey(keypair.secretKey);
-    
-    const nonce = client.z32.encode(client.crypto.randomBytes());
-    const id = client.z32.encode(client.crypto.randomBytes());
-
-    const b3 = await client.crypto.blake3()
-    const initialBoardHash = client.z32.encode(b3.hash(JSON.stringify(board)))
-    const boardHash = client.z32.encode(b3.hash(initialBoardHash + nonce))
-
-    await battleshipsEnsureRepo(pk)
-
-    return {
-      id,
-      nonce,
-      publicKey,
-      pubky: pk,
-      boardHash,
+      return {
+        id,
+        nonce,
+        boardHash: currentBoardHash,
+      }
+    } catch (error) {
+      console.log(error);
+      return null;
     }
-  } catch (error) {
-    console.log(error);
-    return null;
+  }
+
+  async join(board: string) {
+    try {
+      const nonce = this.context.z32_encode(this.context.randomBytes());
+
+      const initialBoardHash = await this.context.hash(board);
+      const boardHash = await this.context.hash(initialBoardHash + "/" + nonce)
+
+      return {
+        nonce,
+        boardHash,
+      }
+    } catch (error) {
+      console.log(error);
+      return null;
+    }
+  }
+
+  async put(input: { path: string, payload: Record<string, string>, preSig?: string }) {
+    const { path, payload, preSig } = input
+    try {
+      const getSig = async (payload: Record<string, string>, preSig = '') => {
+        const payloadHash = await this.context.hash(JSON.stringify(payload));
+        const finalHash = await this.context.hash(payloadHash + preSig);
+        return this.context.sign(finalHash);
+      }
+
+      const input = {
+        data: payload,
+        sig: await getSig(payload, preSig)
+      }
+
+      await this.context.client_put('battleships.app/' + path, Buffer.from(JSON.stringify(input)))
+    } catch (error) {
+      console.log(error);
+      return null;
+    }
+  };
+
+  async get(path: string, publicKey: Uint8Array) {
+    try {
+      const url = `pubky://${this.context.z32_encode(Buffer.from(publicKey))}/pub/battleships.app/`;
+      const result = await this.context.client_get(url + path);
+
+      if (!result) {
+        throw new Error("not found.");
+      }
+
+      const body = JSON.parse(result.toString());
+      const { data, sig } = body
+
+      const encoder = new TextEncoder();
+      const signatureBuffer = encoder.encode(sig).buffer;
+
+      const verify = await this.context.verify(publicKey, signatureBuffer, data)
+
+      if (!verify)
+        throw new Error(`failed to verify the signature`)
+
+      return body;
+    } catch (error) {
+      console.log(error);
+      return null;
+    }
   }
 }
-
-const battleshipsJoin = async (uri: string, board: Record<string, string>) => {
-  try {
-    const pk = await isLoggedIn();
-
-    if (!pk) throw new Error('Logged in failed : not logged in.');
-
-    await client.ready();
-
-    const seed = await client.crypto.generateSeed();
-    const keypair = client.crypto.generateKeyPair(seed);
-    const publicKey = client.z32.encode(keypair.publicKey);
-
-    Utils.storage.set('b_public_key', keypair.publicKey);
-    Utils.storage.set('b_secret_key', keypair.secretKey);
-    setBPublicKey(keypair.publicKey);
-    setBSecretKey(keypair.secretKey);
-    
-    const nonce = client.z32.encode(client.crypto.randomBytes());
-
-    const parts = uri.split('/')
-    const id = parts[parts.length - 1]
-    const enemyPubky = parts[0].replace('pk:', '')
-
-    const b3 = await client.crypto.blake3()
-    const initialBoardHash = client.z32.encode(b3.hash(JSON.stringify(board)))
-    const boardHash = client.z32.encode(b3.hash(initialBoardHash + nonce))
-
-    await battleshipsEnsureRepo(pk)
-
-    return {
-      id,
-      nonce,
-      publicKey,
-      boardHash,
-      pubky: pk,
-      enemyPubky,
-    }
-  } catch (error) {
-    console.log(error);
-    return null;
-  }
-}
-
-const battleshipsPut = async (input: {path: string, payload: Record<string, string>, preSig?: string}) => {
-  const {path, payload, preSig} = input
-  try {
-    const pk = await isLoggedIn();
-
-    if (!pk) throw new Error('Logged in failed : not logged in.');
-
-    const [_, gameId, stage] = path.split('/')
-
-    const getSig = async (payload, preSig = '') => {
-      const b3 = await client.crypto.blake3()
-      const payloadHash = client.z32.encode(b3.hash(JSON.stringify(payload)))
-      const finalHash = client.z32.encode(b3.hash(payloadHash + preSig))
-      return client.z32.encode(client.crypto.sign(new Uint8Array(Utils.storage.get('b_secret_key').data),
-        new Uint8Array(Buffer.from(finalHash).buffer)));
-    }
-
-    await client.ready();
-
-    const input = {
-      data: payload,
-      sig: await getSig(payload, preSig)
-    }
-
-    const result = await client.repos.put(pk, 'battleships.app', path, Buffer.from(JSON.stringify(input)))
-
-    if (!result.ok)
-      throw new Error(`Put failed: ${result.error.message}`);
-
-    return result.value;
-  } catch (error) {
-    console.log(error);
-    return null;
-  }
-};
-
-const battleshipsGet = async (userId: string, path: string) => {
-  try {
-    await client.ready();
-
-    const targetUserId = userId.replace('pk:', '')
-    const result = await client.repos.get(targetUserId, 'battleships.app', path)
-
-    if (!result.ok)
-      throw new Error(`Get failed: ${result.error.message}`);
-
-    const body = JSON.parse(result.value.toString())
-    // const {data, sig} = body
-
-    // const verify = client.crypto.verify(sig, data, client.z32.decode(Utils.storage.get('b_enemy_public_key')))
-    
-    // if (!verify.ok)
-    //   throw new Error(`failed to verify the signature`)
-
-    return body;
-  } catch (error) {
-    console.log(error);
-    return null;
-  }
-};
-

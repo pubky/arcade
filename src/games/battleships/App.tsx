@@ -1,6 +1,7 @@
 'use client';
 import { useContext, useEffect, useState } from 'react';
-import { ClientContext } from '../../client/context';
+import { ClientContext } from '../../client';
+import { BattleshipsClient } from './client';
 
 enum GameState {
   MAIN = 'MAIN',
@@ -14,112 +15,342 @@ enum LobbyMode {
 }
 
 enum MatchState {
-  PRE = 'PRE',
+  WARM_UP = 'WARM_UP',
   MOVE = 'MOVE',
   RES = 'RES',
   CONF = 'CONF',
   WAIT = 'WAIT'
 }
 
-function App() {
+enum Tile {
+  WATER = 'WATER',
+  SHIP = 'SHIP',
+  HIT = 'HIT',
+  MISS = 'MISS',
+  PENDING = 'PENDING',
+}
+
+// Board keys are '{row}-{column}' and map to a Tile. 
+// The board only keeps values apart from Tile.WATER and if a key does not exist, it equals a Tile.WATER.
+type Board = Record<string, Tile>
+
+
+type ShipAlignment = 'horizontal' | 'vertical'
+
+enum ShotResult {
+  MISS = 'MISS',
+  HIT = 'HIT',
+  SUNK = 'SUNK',
+}
+
+// Ship has a bunch of points which are the board's keys.
+// The items are sorted from left to right for horizontal and top to bottom for vertical ones.
+interface Ship {
+  tiles: string[],
+  hits: string[]
+}
+
+const newShip = (input: { start: string, align: ShipAlignment, size: number }): Ship => {
+  const { align, size, start } = input;
+  const tiles = [start]
+  for (let i = 1; i < size; i++) {
+    const previous = tiles[i - 1];
+    const [row, col] = previous.split('-').map(i => Number(i));
+    const newKey = align === 'horizontal' ? [row, col + 1] : [row + 1, col];
+    tiles.push(newKey.join('-'));
+  }
+  return {
+    tiles,
+    hits: []
+  }
+}
+
+const placeShot = (input: { hit: string, board: Board, ships: Ship[] }): ShotResult => {
+  const { board, hit, ships } = input;
+  const tile = board[hit];
+
+  if (tile === undefined || tile !== Tile.SHIP) {
+    return ShotResult.MISS
+  }
+
+  const hitShip = ships.find(ship => ship.tiles.includes(hit)) as Ship;
+  hitShip.hits.push(hit)
+  board[hit] = Tile.HIT;
+
+  return hitShip.hits.length === hitShip.tiles.length ? ShotResult.SUNK : ShotResult.HIT
+}
+
+const newBoard = (): Board => {
+  return {}
+}
+
+const useSharedState = () => {
   const [gameState, setGameState] = useState(GameState.MAIN);
   const [lobbyMode, setLobbyMode] = useState(LobbyMode.CREATE);
 
   const [id, setId] = useState<string | null>(null);
   const [uri, setUri] = useState<string | null>(null);
-  const [joinUri, setJoinUri] = useState<string | null>(null);
-  const [matchPublicKey, setMatchPublicKey] = useState<string | null>(null);
   const [nonce, setNonce] = useState<string | null>(null);
   const [enemyPubky, setEnemyPubky] = useState<string | null>(null);
-  const [enemyMatchPublicKey, setEnemyMatchPublicKey] = useState<string | null>(null);
-  const [board, setBoard] = useState<Record<string, number>>({});
+  const [board, setBoard] = useState<Board>(newBoard());
   const [boardHash, setBoardHash] = useState<string | null>(null);
-  const [size, setSize] = useState<number>(10);
-  const [ships, setShips] = useState<number[]>([2, 2, 3, 3]);
-  const [placedShips, setPlacedShips] = useState<number[]>([]);
-  const [enemyBoard, setEnemyBoard] = useState(createEmptyBoard(size));
+
+  // settings in lobby
+  const [boardSize, setBoardSize] = useState<number>(10);
+  const [availableShipSizes, setAvailableShipSizes] = useState<number[]>([2, 2, 3, 3]);
+  const [placedShips, setPlacedShips] = useState<Ship[]>([]);
+
+  const [enemyBoard, setEnemyBoard] = useState<Board>(newBoard());
   const [enemyBoardHash, setEnemyBoardHash] = useState<string | null>(null);
-  const [shipsSunk, setShipsSunk] = useState<number>(0);
-  const [enemyShipsSunk, setEnemyShipsSunk] = useState<number>(0);
 
-  const [disable, setDisable] = useState(false);
+  // a tuple in this format [ships I have destroyed, ships the enemy has destroyed]
+  const [score, setScore] = useState<[number, number]>([0, 0]);
 
-  const { battleshipsGet, battleshipsPut, battleshipsStart, battleshipsJoin } = useContext(ClientContext);
+  const context = useContext(ClientContext);
+  const client = new BattleshipsClient(context);
 
-  const getGamePage = (state: GameState) => {
-    switch (state) {
-      case GameState.MAIN:
-        return <MainMenu />
-      case GameState.LOBBY:
-        return <Lobby />
-      case GameState.MATCH:
-        return <Game />
+  return {
+    client,
+    context,
+    states: {
+      gameState,
+      lobbyMode,
+      id,
+      uri,
+      nonce,
+      enemyPubky,
+      board,
+      boardHash,
+      boardSize,
+      availableShipSizes,
+      placedShips,
+      enemyBoard,
+      enemyBoardHash,
+      score,
+    },
+    setStates: {
+      setGameState,
+      setLobbyMode,
+      setId,
+      setUri,
+      setNonce,
+      setEnemyPubky,
+      setBoard,
+      setBoardHash,
+      setBoardSize,
+      setAvailableShipSizes,
+      setPlacedShips,
+      setEnemyBoard,
+      setEnemyBoardHash,
+      setScore,
     }
   }
+}
 
-  function createEmptyBoard(size: number) {
-    const board: Record<string, number> = {}
-    for (let i = 0; i < size; i++) {
-      for (let j = 0; j < size; j++) {
-        const key = `${i}-${j}`
-        board[key] = 0
-      }
-    }
-    return board
-  }
+function MainMenu() {
+  const { states, setStates } = useSharedState();
+  const { setUri, setGameState, setLobbyMode, setId, setEnemyPubky } = setStates;
+  const { uri } = states;
 
-  const startGame = (mode: LobbyMode) => {
-    setLobbyMode(mode)
+
+  const startMatch = (mode: LobbyMode) => {
     setGameState(GameState.LOBBY)
-    setDisable(false)
-    if (mode === LobbyMode.JOIN && joinUri) {
-      const parts = (joinUri as string).split('/')
+    setLobbyMode(mode)
+    if (mode === LobbyMode.JOIN) {
+      const parts = (uri as string).split('/')
       const id = parts[parts.length - 1]
-      const enemyPk = parts[0].replace('pk:', '')
+      const enemyPk = parts[2]
       setId(id)
       setEnemyPubky(enemyPk)
-      setUri(joinUri)
     }
   };
 
-  const joinMatch = () => {
-    const parts = (joinUri as string).split('/')
-    const id = parts[parts.length - 1]
-    const enemyPk = parts[0].replace('pk:', '')
-    battleshipsGet(enemyPk, `matches/${id}/init`).then((value => {
-      setUri(joinUri);
-      setId(id);
-      setEnemyPubky(enemyPk)
-      setSize(Number(value.data.size))
-      setEnemyMatchPublicKey(value.data.publicKey as string)
-      setEnemyBoardHash(value.data.boardHash as string)
-      setShips((value.data.ships as string).split(',').map(i => Number(i)))
+  return (
+    <div className="flex flex-col items-center justify-center h-screen bg-blue-100">
+      <h1 className="text-4xl font-bold mb-8 text-blue-800">Battleships</h1>
+      <button
+        onClick={() => startMatch(LobbyMode.CREATE)}
+        className="m-2 px-6 py-3 bg-blue-500 text-white font-semibold rounded-lg shadow-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-opacity-75"
+      >
+        Start Game
+      </button>
+      <span> Or </span>
+      <form onSubmit={() => startMatch(LobbyMode.JOIN)} className='w-full mt-2 flex flex-col items-center justify-center'>
+        <input
+          type="text"
+          id="join-url"
+          placeholder='Enter match uri'
+          onChange={(e) => {
+            setUri(e.target.value);
+          }}
+          value={uri || ''}
+          className="w-1/4 p-2 border rounded" />
+        <button
+          type='submit'
+          className="m-2 px-6 py-3 bg-blue-800 text-white font-semibold rounded-lg shadow-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-opacity-75"
+        >
+          Join Game
+        </button>
+      </form>
+    </div>
+  );
+}
 
-      battleshipsJoin(joinUri as string, board).then((value => {
+
+function Lobby() {
+  const { client, context, states, setStates } = useSharedState();
+  const { board, boardSize, availableShipSizes, uri, lobbyMode, enemyPubky, placedShips } = states;
+  const { setBoardHash, setId, setUri, setNonce, setGameState, setEnemyPubky,
+    setBoardSize, setEnemyBoardHash, setAvailableShipSizes, setPlacedShips } = setStates;
+
+  const [placementAligment,] = useState<ShipAlignment>('horizontal');
+  const [remainingShips, setRemainingShips] = useState<number[]>(availableShipSizes);
+
+  const startMatch = () => {
+    client.start(JSON.stringify(board)).then((value => {
+      if (value === null) return
+      const { id, nonce, boardHash } = value
+      client.put({
+        path: `matches/${id}/init`,
+        payload: { boardHash, size: String(boardSize), ships: String(availableShipSizes) }
+      }).then((() => {
+        setBoardHash(boardHash)
+        setId(id)
+        setUri(`pubky://${context.pubky}/pub/battleships.app/matches/${id}`);
+        setNonce(nonce)
+        setGameState(GameState.MATCH);
+      }));
+    }));
+  }
+
+  const joinMatch = () => {
+    const parts = (uri as string).split('/')
+    const id = parts[parts.length - 1]
+    setId(id)
+    const enemyPk = parts[2]
+    setEnemyPubky(enemyPk)
+
+    client.get(`matches/${id}/init`, new TextEncoder().encode(enemyPk)).then((enemyInit => {
+      setBoardSize(Number(enemyInit.data.size))
+      setEnemyBoardHash(enemyInit.data.boardHash as string)
+      setAvailableShipSizes((enemyInit.data.ships as string).split(',').map(i => Number(i)))
+
+      client.join(JSON.stringify(board)).then((value => {
+        if (value === null) {
+          throw new Error("Could not join.")
+        }
         setBoardHash(value.boardHash)
         setNonce(value.nonce)
-        setMatchPublicKey(value.publicKey)
 
-        battleshipsPut({path: `matches/${id}/join`, 
-          payload: {publicKey: matchPublicKey || '', boardHash: boardHash || '' }}).then((value => {
-            setGameState(GameState.MATCH)
-            setDisable(false)
-          }));
+        client.put({
+          path: `matches/${id}/join`,
+          payload: { boardHash: value.boardHash || '' },
+          preSig: enemyInit.sig
+        }).then((() => {
+          setGameState(GameState.MATCH)
+        }));
       }))
     }))
   }
 
-  function Board(input: { onCellClick: ((i: number, j: number) => void) | undefined }) {
-    const { onCellClick } = input
-    return drawBoard(board, onCellClick)
+  const placeShip = (row: number, col: number): void => {
+    const shipStart = `${row}-${col}`;
+    const align = placementAligment;
+    const ship = newShip({ align, size: availableShipSizes[availableShipSizes.length - 1], start: shipStart });
+    for (const item in ship) {
+      board[item] = Tile.SHIP;
+    }
+    setPlacedShips(placedShips.concat(ship));
+    setRemainingShips(remainingShips.slice(0, remainingShips.length - 1));
   }
 
-  function EnemyBoard(input: { onCellClick: ((i: number, j: number) => void) | undefined }) {
-    const { onCellClick } = input
-    return drawBoard(enemyBoard, onCellClick)
-  }
+  return (
+    <div className="flex h-screen bg-blue-100">
+      {/* Main content */}
+      <div className="flex-grow flex flex-col items-center justify-center p-8">
+        <label className="mb-2 text-2xl">
+          Enemy Pubky:
+          {lobbyMode === LobbyMode.CREATE ? <input
+            type="text"
+            value={enemyPubky || ''}
+            onChange={(e) =>
+              setEnemyPubky(e.target.value)}
+            className="w-full p-2 border rounded"
+          /> : <h3>{enemyPubky}</h3>}
+        </label>
 
-  const drawBoard = (inputBoard: Record<string, number>, onCellClick: ((i: number, j: number) => void) | undefined) => {
+        {/* Board */}
+        <div className="mb-4">
+          <Board onCellClick={availableShipSizes.length !== placedShips.length ? placeShip : undefined} board={board} size={boardSize} />
+        </div>
+
+        {/* Start button */}
+        <button
+          onClick={lobbyMode === LobbyMode.CREATE ? startMatch : joinMatch}
+          disabled={!enemyPubky || placedShips.length !== availableShipSizes.length}
+          className="disabled:bg-gray-600 disabled:hover:bg-gray-600 px-6 py-3 bg-green-500 text-white font-semibold rounded-lg shadow-md hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-opacity-75"
+        >
+          {lobbyMode === LobbyMode.CREATE ? 'Start' : 'Join'}
+        </button>
+      </div>
+
+      {/* Right sidebar */}
+      <div className="w-64 bg-blue-200 p-4 flex flex-col">
+        <h3 className="text-lg font-semibold mb-2">Game Settings</h3>
+
+        {/* Size input */}
+        <label className="mb-2">
+          Board Size:
+          {lobbyMode === LobbyMode.CREATE ? <input
+            type="number"
+            value={boardSize}
+            onChange={(e) =>
+              setBoardSize(Number(e.target.value))}
+            className="w-full p-2 border rounded"
+          /> : <h3>{boardSize}</h3>}
+        </label>
+
+        {/* Ships input */}
+        <label className="mb-2">
+          Ships:
+          <div className="flex">
+            {lobbyMode === LobbyMode.CREATE ? <input
+              type="text"
+              value={String(availableShipSizes)}
+              onChange={(e) =>
+                setAvailableShipSizes(e.target.value.split(',').map(i => Number(i)))}
+              className="flex-grow p-2 border rounded-l"
+            /> : <h3>{String(availableShipSizes)}</h3>}
+          </div>
+        </label>
+
+        {/* Ships list */}
+        <div className="mt-4">
+          <h4 className="font-semibold">Ships:</h4>
+          <ul className="list-disc list-inside">
+            {remainingShips.map((shipSize, index) => (
+              <li key={index}>Ship: {shipSize}</li>
+            ))}
+          </ul>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function Board(input: { board: Board, size: number, onCellClick: ((i: number, j: number) => void) | undefined }) {
+  const { onCellClick, board, size } = input
+
+  const drawBoard = (inputBoard: Board, size: number, onCellClick: ((i: number, j: number) => void) | undefined) => {
+    const getCellColor = (value: Tile) => {
+      switch (value) {
+        case Tile.WATER: return 'bg-blue-500';
+        case Tile.SHIP: return 'bg-gray-500';
+        case Tile.MISS: return 'bg-black';
+        case Tile.HIT: return 'bg-red-500';
+        default: return 'bg-blue-500'; // Water
+      }
+    };
     const renderItems = []
     for (let i = 0; i < size; i++) {
       const renderRow = []
@@ -136,171 +367,28 @@ function App() {
     }
     return <div className={`grid ${'grid-cols-10'} gap-1 bg-gray-700 p-1`}>{renderItems}</div>
   }
+  return drawBoard(board, size, onCellClick)
+}
 
-  const getCellColor = (value: number) => {
-    switch (value) {
-      case 0: return 'bg-blue-500';    // Water
-      case 1: return 'bg-gray-500';    // Ship
-      case 2: return 'bg-black';    // Miss
-      case 3: return 'bg-red-500';     // Hit
-      default: return 'bg-blue-500';
-    }
-  };
+const poll = (pollFunction: () => void) => {
+  const intervalId = setInterval(pollFunction, 1000);
+  return () => clearInterval(intervalId);
+}
 
-  function Lobby() {
-    const placeShip = (row: number, col: number) => {
-      const currentShip = shipsRemained()[0]
-      const newBoard: Record<string, number> = {...board}
+function Game() {
+  const { states, client, setStates } = useSharedState();
+  const { lobbyMode, id, enemyPubky, board, boardSize, enemyBoard, uri, score, placedShips } = states;
+  const { setEnemyBoardHash, setBoard, setScore } = setStates;
 
-      for (let i = 0; i < currentShip; i++){
-        const key = `${row}-${col+i}`
-        newBoard[key] = 1
-      }
+  const [matchState, setMatchState] = useState<MatchState>(lobbyMode === LobbyMode.CREATE ? MatchState.WARM_UP : MatchState.WAIT);
+  const [currentTurn, setCurrentTurn] = useState<number>(1);
+  const [lastMove, setLastMove] = useState<MatchState | null>(null);
 
-      setPlacedShips(placedShips.concat(currentShip))
-      setBoard(newBoard)
-    };
+  const [lastEnemySig, setLastEnemysig] = useState<string | null>(null);
 
-    const startMatch = () => {
-      battleshipsStart(board as Record<string, number>).then((value => {
-        if (value === null) return
-        const { id, nonce, boardHash, publicKey, pubky } = value
-        battleshipsPut({path: `matches/${id}/init`, 
-          payload: {publicKey, boardHash, size: String(size), ships: String(ships)}}).then((value => {
-            setMatchPublicKey(publicKey)
-            setBoardHash(boardHash)
-            setId(id)
-            setUri(`pk:${pubky}/battleships.app/matches/${id}`);
-            setNonce(nonce)
-          }));
-      }));
-      setGameState(GameState.MATCH);
-      setDisable(false);
-    }
-
-    return (
-      <div className="flex h-screen bg-blue-100">
-        {/* Main content */}
-        <div className="flex-grow flex flex-col items-center justify-center p-8">
-          <label className="mb-2 text-2xl">
-            Enemy Pubky:
-            {lobbyMode === LobbyMode.CREATE ? <input 
-              type="text"
-              value={enemyPubky || ''} 
-              onChange={(e) => 
-                setEnemyPubky(e.target.value)}
-              className="w-full p-2 border rounded"
-            /> : <h3>{enemyPubky}</h3>}
-          </label>
-          
-          {/* Board */}
-          <div className="mb-4">
-              <Board onCellClick={ships.length !== placedShips.length ? placeShip : undefined} />
-          </div>
-
-          {/* Start button */}
-          <button 
-            onClick={lobbyMode === LobbyMode.CREATE ? startMatch : joinMatch}
-            disabled={!enemyPubky || placedShips.length !== ships.length}
-            className="disabled:bg-gray-600 disabled:hover:bg-gray-600 px-6 py-3 bg-green-500 text-white font-semibold rounded-lg shadow-md hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-opacity-75"
-          >
-            {lobbyMode === LobbyMode.CREATE ? 'Start' : 'Join'}
-          </button>
-        </div>
-
-        {/* Right sidebar */}
-        <div className="w-64 bg-blue-200 p-4 flex flex-col">
-          <h3 className="text-lg font-semibold mb-2">Game Settings</h3>
-          
-          {/* Size input */}
-          <label className="mb-2">
-            Board Size:
-            {lobbyMode === LobbyMode.CREATE ? <input 
-              type="number" 
-              value={size} 
-              onChange={(e) => 
-                setSize(Number(e.target.value))}
-              className="w-full p-2 border rounded"
-            /> : <h3>{size}</h3>}
-          </label>
-
-          {/* Ships input */}
-          <label className="mb-2">
-            Ships:
-            <div className="flex">
-              {lobbyMode === LobbyMode.CREATE ? <input 
-                type="text"
-                value={String(ships)} 
-                onChange={(e) => 
-                  setShips(e.target.value.split(',').map(i => Number(i)))}
-                className="flex-grow p-2 border rounded-l"
-              /> : <h3>{String(ships)}</h3>}
-            </div>
-          </label>
-
-          {/* Ships list */}
-          <div className="mt-4">
-            <h4 className="font-semibold">Ships:</h4>
-            <ul className="list-disc list-inside">
-              {shipsRemained().map((ship, index) => (
-                <li key={index}>Ship: {ship}</li>
-              ))}
-            </ul>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  const shipsRemained = () => {
-    const placed = [...placedShips]
-    return ships.filter(item => {
-      const index = placed.indexOf(item)
-      if (index > -1) {
-        placed.splice(index, 1);
-        return false;
-      }
-      return true
-    });
-  }
-
-  function MainMenu() {
-    return (
-      <div className="flex flex-col items-center justify-center h-screen bg-blue-100">
-        <h1 className="text-4xl font-bold mb-8 text-blue-800">Battleships</h1>
-        <button 
-          onClick={() => startGame(LobbyMode.CREATE)}
-          disabled={disable}
-          className="m-2 px-6 py-3 bg-blue-500 text-white font-semibold rounded-lg shadow-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-opacity-75"
-        >
-          Start Game
-        </button>
-        <span> Or </span>
-        <form onSubmit={() => startGame(LobbyMode.JOIN)} className='w-full mt-2 flex flex-col items-center justify-center'>
-          <input 
-                type="text" 
-                id="join-url"
-                placeholder='Enter match uri'
-                onChange={(e) => {
-                  setJoinUri(e.target.value);
-                }}
-                value={joinUri || ''}
-                disabled={disable}
-                className="w-1/4 p-2 border rounded"/>
-          <button
-            type='submit'
-            className="m-2 px-6 py-3 bg-blue-800 text-white font-semibold rounded-lg shadow-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-opacity-75"
-          >
-            Join Game
-          </button>
-        </form>
-      </div>
-    );
-  }
-
-  const getGameTitle = (state: MatchState) => {
+  const getStateTitle = (state: MatchState) => {
     switch (state) {
-      case MatchState.PRE:
+      case MatchState.WARM_UP:
         return 'Waiting for the other player to join...'
       case MatchState.MOVE:
         return 'Attacking the enemy board'
@@ -311,198 +399,183 @@ function App() {
     }
   }
 
-  function Game() {
-    const [matchState, setMatchState] = useState(MatchState.PRE)
-    const [enemyPreSig, setEnemyPreSig] = useState<string | null>(null)
-    const [currentTurn, setCurrentTurn] = useState(lobbyMode === LobbyMode.CREATE ? 'M1' : 'C0')
-    const [lastMove, setLastMove] = useState<string | null>(null)
+  const waitForOtherPlayerJoin = () => {
+    client.get(`matches/${id}/join`, new TextEncoder().encode(enemyPubky as string)).then(value => {
+      if (value === null) return
+      setMatchState(MatchState.MOVE);
+      setEnemyBoardHash((value as { data: Record<string, string>, sig: string }).data.boardHash as string)
+      setLastEnemysig((value as { data: Record<string, string>, sig: string }).sig)
+    })
+  }
 
-    const waitForOtherPlayerJoin = () => {
-      const intervalId = setInterval(() => {
-        if (lobbyMode === LobbyMode.JOIN) {
-          setMatchState(MatchState.WAIT)
-          return
-        }
-        battleshipsGet(enemyPubky as string, `matches/${id}/join`).then(value => {
-          if (value === null) return
-          setMatchState(MatchState.MOVE);
-          setCurrentTurn('M1');
-          setEnemyBoardHash((value as {data: Record<string, string>, sig: string}).data.boardHash as string)
-          setEnemyMatchPublicKey((value as {data: Record<string, string>, sig: string}).data.publicKey as string)
-          setEnemyPreSig((value as {data: Record<string, string>, sig: string}).sig)
-        })
-      }, 1000); // polling interval of 1 seconds
-  
-      return () => clearInterval(intervalId); // cleanup on unmount
+  const waitForOtherPlayerMove = () => {
+    const enemyState = getEnemyState(lastMove);
+    const enemyTurnPath = getFilePath(enemyState, currentTurn);
+    client.get(`matches/${id}/${enemyTurnPath}`, new TextEncoder().encode(enemyPubky as string)).then(value => {
+      console.log('value of get', value)
+      if (value === null) return
+      setLastEnemysig((value as { data: Record<string, string>, sig: string }).sig)
+      handleEnemyMove(enemyState, (value as { data: Record<string, string>, sig: string }).data)
+    })
+  }
+
+  const handleEnemyMove = (enemyState: MatchState, data: Record<string, string>) => {
+    switch (enemyState) {
+      case MatchState.MOVE:
+        setMatchState(MatchState.RES);
+        handleEnemyAttack(data);
+        setMatchState(MatchState.WAIT);
+        setLastMove(MatchState.RES);
+        break;
+      case MatchState.RES:
+        setMatchState(MatchState.CONF);
+        handleEnemyRes(data);
+        setMatchState(MatchState.WAIT);
+        setLastMove(MatchState.CONF);
+        break;
+      case MatchState.CONF:
+        handleEnemyConf(data);
+        setMatchState(MatchState.MOVE);
+        break;
+      default:
+        break;
+    }
+  }
+
+  const handleEnemyAttack = (data: Record<string, string>) => {
+    const { move } = data
+    console.log('enemy move', move)
+
+    const result = placeShot({ hit: move, board, ships: placedShips });
+
+    console.log('result: ', result);
+
+    // send res
+    client.put({
+      path: `matches/${id}/${getFilePath(MatchState.RES, currentTurn)}`, payload: {
+        res: String(result)
+      }, preSig: lastEnemySig as string
+    })
+    setBoard(board)
+  }
+
+  const attackEnemy = (row: number, col: number) => {
+    const key = `${row}-${col}`
+    const payload = {
+      move: key
     }
 
-    const getNextTurn = (currentTurn: string) => {
-      const stage = currentTurn[0]
-      const turn = Number(currentTurn.slice(1))
-      let nextStage = stage
-      switch (stage) {
-        case 'M':
-          nextStage = 'R'
-          return `${nextStage}${turn}`
-        case 'R':
-          nextStage = 'C'
-          return `${nextStage}${turn}`
-        case 'C':
-          nextStage = 'M'
-          return `${nextStage}${turn+1}`
-        default:
-          return currentTurn
-      }
-    }
+    enemyBoard[key] = Tile.PENDING;
+    console.log('payload', payload)
+    client.put({ path: `matches/${id}/${getFilePath(MatchState.MOVE, currentTurn)}`, payload, preSig: lastEnemySig as string })
+    setLastMove(MatchState.MOVE)
+    setMatchState(MatchState.WAIT);
+  }
 
-    const attackEnemy = (row: number, col: number) => {
-      const key = `${row}-${col}`
-      const payload = {
-        move: key
-      }
-      console.log('payload', payload)
-      battleshipsPut({path: `matches/${id}/${currentTurn}`, payload, preSig: enemyPreSig as string})
-      setLastMove(key)
-      setMatchState(MatchState.WAIT);
+  const handleEnemyConf = (data: Record<string, string>) => {
+    const { confirmation } = data
+    setCurrentTurn(currentTurn + 1);
+    if (confirmation === 'false') {
+      alert('enemy did not confirm');
     }
+  }
 
-    const handleEnemyAttack = (data: Record<string, string>, turn: string) => {
-      const { move } = data
-      console.log('enemy move', move)
-      const target = board[move]
-      console.log('enemy hit: ', target);
-      sendEnemyTheirAttackResult(target, turn);
-      const newBoard = { ...board };
-      newBoard[move] = target === 0 ? 2 : 3;
-      setBoard(newBoard)
-    }
-    const handleEnemyRes = (data: Record<string, string>, turn: string) => {
-      const { res } = data
-      const newEnemyBoard = { ...enemyBoard }
-      newEnemyBoard[lastMove as string] = Number(res) === 0 ? 2 : 3
-      if (Number(res) === 2) {
-        setEnemyShipsSunk(enemyShipsSunk + 1);
-      }
-      sendEnemyConfirmation(turn);
-    }
-    const handleEnemyConf = (data: Record<string, string>) => {
-      const {confirmation} = data
-      if (confirmation === 'false') {
-        alert('enemy did not confirm');
-      }
-    }
-
-    const handleEnemyMove = (data: Record<string, string>) => {
-      const enemyTurn = getNextTurn(currentTurn) // enemy's turn
-      const enemyState = getNextState(currentTurn) // enemy's turn
-      const myturn = getNextTurn(enemyTurn)
-      const myState = getNextState(enemyTurn)
-      
-      setCurrentTurn(myturn);
-      setMatchState(myState);
-      console.log({enemyTurn, enemyState, myturn, myState})
-
-      switch (enemyState) {
-        case MatchState.MOVE:
-          handleEnemyAttack(data, myturn);
-          setMatchState(MatchState.WAIT);
-          break;
-        case MatchState.RES:
-          handleEnemyRes(data, myturn);
-          setMatchState(MatchState.WAIT);
-          break;
-        case MatchState.CONF:
-          handleEnemyConf(data)
-          setMatchState(MatchState.MOVE);
-          break;
-        default:
-          break;
-      }
-    }
-
-    const sendEnemyConfirmation = (turn: string) => {
-      battleshipsPut({path: `matches/${id}/${turn}`, payload: {
+  const sendEnemyConfirmation = () => {
+    client.put({
+      path: `matches/${id}/${getFilePath(MatchState.CONF, currentTurn)}`, payload: {
         confirmation: 'true'
-      }, preSig: enemyPreSig as string})
+      }, preSig: lastEnemySig as string
+    })
+    setCurrentTurn(currentTurn + 1);
+  }
+
+  const handleEnemyRes = (data: Record<string, string>) => {
+    const { res } = data
+    if (res === ShotResult.MISS) {
+      enemyBoard[lastMove as string] = Tile.MISS;
     }
-
-    const sendEnemyTheirAttackResult = (res: number, turn: string) => {
-      battleshipsPut({path: `matches/${id}/${turn}`, payload: {
-        res: String(res)
-      }, preSig: enemyPreSig as string})
-    }
-
-    const getNextState = (turn: string | null): MatchState => {
-      if (turn === null) return MatchState.WAIT
-
-      const stage = turn[0]
-      switch (stage) {
-        case 'M':
-          return MatchState.RES
-        case 'R':
-          return MatchState.CONF
-        case 'C':
-          return MatchState.MOVE
-        default:
-          return MatchState.WAIT
+    else {
+      enemyBoard[lastMove as string] = Tile.HIT;
+      if (res === ShotResult.SUNK) {
+        setScore([score[0] + 1, score[1]]);
       }
     }
+    sendEnemyConfirmation();
+  }
 
-    const waitForOtherPlayerMove = () => {
-      console.log('current turn', currentTurn)
-      const intervalId = setInterval(() => {
-        console.log('in interval', enemyPubky, getNextTurn(currentTurn))
-        battleshipsGet(enemyPubky as string, `matches/${id}/${getNextTurn(currentTurn)}`).then(value => {
-          console.log('value of get', value)
-          if (value === null) return
-          setEnemyPreSig((value as {data: Record<string, string>, sig: string}).sig)
-          handleEnemyMove((value as {data: Record<string, string>, sig: string}).data)
-        })
-      }, 1000); // polling interval of 1 seconds
-  
-      return () => clearInterval(intervalId); // cleanup on unmount
+  const getEnemyState = (lastMove: MatchState | null) => {
+    switch (lastMove) {
+      case MatchState.MOVE:
+        return MatchState.RES;
+      case MatchState.RES:
+        return MatchState.CONF;
+      case MatchState.CONF:
+        return MatchState.MOVE;
+      default:
+        return MatchState.MOVE;
     }
+  }
 
-    useEffect(() => {
-      switch (matchState) {
-        case MatchState.PRE:
-          return waitForOtherPlayerJoin();
-        case MatchState.MOVE:
-          return
-        case MatchState.RES:
-          return
-        case MatchState.CONF:
-          return
-        case MatchState.WAIT:
-          console.log('hi');
-          return waitForOtherPlayerMove();
-      }
-    }, [matchState])
+  const getFilePath = (state: MatchState, turn: number) => {
+    return `${state}-${turn}`;
+  }
 
-    return (
-      <div className="flex flex-col items-center p-8 bg-blue-100 min-h-screen">
-        <h2 className="text-2xl font-bold mb-4 text-blue-800">{getGameTitle(matchState)}</h2>
-        <div className="flex flex-wrap justify-center gap-8 mb-8">
-          <div>
-            <h3 className="text-xl font-semibold mb-2 text-blue-700">Your Board</h3>
-            <Board onCellClick={undefined}/>
-          </div>
-          <div>
-            <h3 className="text-xl font-semibold mb-2 text-blue-700">Enemy Board @{enemyPubky?.slice(0, 8)}...</h3>
-            <EnemyBoard onCellClick={attackEnemy}/>
-          </div>
+  useEffect(() => {
+    switch (matchState) {
+      case MatchState.WARM_UP:
+        return poll(waitForOtherPlayerJoin);
+      case MatchState.MOVE:
+        return
+      case MatchState.RES:
+        return
+      case MatchState.CONF:
+        return
+      case MatchState.WAIT:
+        console.log('hi');
+        return poll(waitForOtherPlayerMove);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [matchState])
+
+  return (
+    <div className="flex flex-col items-center p-8 bg-blue-100 min-h-screen">
+      <h2 className="text-2xl font-bold mb-4 text-blue-800">{getStateTitle(matchState)}</h2>
+      <div className="flex flex-wrap justify-center gap-8 mb-8">
+        <div>
+          <h3 className="text-xl font-semibold mb-2 text-blue-700">Your Board</h3>
+          <Board board={board} size={boardSize} onCellClick={undefined} />
         </div>
-        <div className='flex flex-col'>
-          <div className='flex items-center'>
-            <h1 className="text-2xl font-bold m-2">Game URI:</h1>
-            <p>(click the link to copy)</p>
-          </div>
-          <button className="text-2xl font-bold bg-blue-200 p-0.5" onClick={() => navigator.clipboard.writeText(uri || '')}>
-            {uri?.slice(0, 10)}...
-          </button>
+        <div>
+          <h3 className="text-xl font-semibold mb-2 text-blue-700">Enemy Board @{enemyPubky?.slice(0, 8)}...</h3>
+          <Board board={enemyBoard} size={boardSize} onCellClick={attackEnemy} />
         </div>
       </div>
-    );
+      <div className='flex flex-col'>
+        <div className='flex items-center'>
+          <h1 className="text-2xl font-bold m-2">Game URI:</h1>
+          <p>(click the link to copy)</p>
+        </div>
+        <button className="text-2xl font-bold bg-blue-200 p-0.5" onClick={() => navigator.clipboard.writeText(uri || '')}>
+          {uri?.slice(0, 10)}...
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function App() {
+  const { states } = useSharedState();
+  const { gameState } = states;
+
+  const getGamePage = (state: GameState) => {
+    switch (state) {
+      case GameState.MAIN:
+        return <MainMenu />
+      case GameState.LOBBY:
+        return <Lobby />
+      case GameState.MATCH:
+        return <Game />
+    }
   }
 
   return (
