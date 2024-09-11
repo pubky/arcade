@@ -86,48 +86,68 @@ export function Lobby({ sharedStates }: { sharedStates: ReturnType<typeof useSha
         setRemainingShips(remainingShips.slice(0, remainingShips.length - 1));
     }
 
+    const calculateRemainingShips = (placed: number[], available: number[]): number[] => {
+        const counts: Record<number, number> = {};
+        available.forEach(item => {
+            const current = counts[item] || 0;
+            counts[item] = current + 1;
+        })
+        placed.forEach(item => {
+            const current = counts[item] || 0;
+            counts[item] = current - 1;
+        })
+
+        const remaining = Object.keys(counts).map(key => counts[Number(key)] !== 0 ?
+            Array(Math.abs(counts[Number(key)])).fill(Number(key)) : []).flat();
+        return remaining
+    }
+
     return (
-        <div className="flex h-screen bg-blue-100">
+        <div className="grid grid-cols-4 h-screen bg-blue-100">
             {/* Main content */}
-            <div className="flex-grow flex flex-col items-center justify-center p-8">
-                <label className="mb-2 text-2xl">
-                    Enemy Pubky:
-                    {lobbyMode === LobbyMode.CREATE ? <input
-                        type="text"
-                        value={enemyPubky || ''}
-                        onChange={(e) =>
-                            setEnemyPubky(e.target.value)}
-                        className="w-full p-2 border rounded"
-                    /> : <h3>{enemyPubky}</h3>}
-                </label>
+            <div className="col-span-3">
+                <div className="grid grid-rows-5 items-center p-8 gap-2u">
+                    <label className="mb-2 text-2xl font-semibold">
+                        Enemy Pubky:
+                        {lobbyMode === LobbyMode.CREATE ? <input
+                            type="text"
+                            value={enemyPubky || ''}
+                            onChange={(e) =>
+                                setEnemyPubky(e.target.value)}
+                            className="w-full p-2 border rounded"
+                        /> : <h3>{enemyPubky}</h3>}
+                    </label>
 
-                {/* Board */}
-                <div className="mb-4">
-                    <Board onCellClick={availableShipSizes.length !== placedShips.length ? placeShip : undefined} board={board} size={boardSize} />
+                    <div className="flex flex-col row-span-4 h-auto items-center">
+                        {/* Board */}
+                        <div className="mb-4">
+                            <Board onCellClick={availableShipSizes.length !== placedShips.length ? placeShip : undefined} board={board} size={boardSize} />
+                        </div>
+
+                        {/* Start button */}
+                        <button
+                            onClick={lobbyMode === LobbyMode.CREATE ? startMatch : joinMatch}
+                            disabled={!enemyPubky || placedShips.length !== availableShipSizes.length}
+                            className="disabled:bg-gray-600 disabled:hover:bg-gray-600 px-6 py-3 bg-green-500 text-white font-semibold rounded-lg shadow-md hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-opacity-75"
+                        >
+                            {lobbyMode === LobbyMode.CREATE ? 'Start' : 'Join'}
+                        </button>
+                    </div>
                 </div>
-
-                {/* Start button */}
-                <button
-                    onClick={lobbyMode === LobbyMode.CREATE ? startMatch : joinMatch}
-                    disabled={!enemyPubky || placedShips.length !== availableShipSizes.length}
-                    className="disabled:bg-gray-600 disabled:hover:bg-gray-600 px-6 py-3 bg-green-500 text-white font-semibold rounded-lg shadow-md hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-opacity-75"
-                >
-                    {lobbyMode === LobbyMode.CREATE ? 'Start' : 'Join'}
-                </button>
             </div>
 
             {/* Right sidebar */}
-            <div className="w-64 bg-blue-200 p-4 flex flex-col">
+            <div className="bg-blue-200 p-4 flex flex-col">
                 <h3 className="text-lg font-semibold mb-2">Game Settings</h3>
 
                 {/* Size input */}
                 <label className="mb-2">
-                    Board Size:
+                    Board Size: Max is 20
                     {lobbyMode === LobbyMode.CREATE ? <input
                         type="number"
                         value={boardSize}
                         onChange={(e) =>
-                            setBoardSize(Number(e.target.value))}
+                            setBoardSize(Math.min(Number(e.target.value), 20))}
                         className="w-full p-2 border rounded"
                     /> : <h3>{boardSize}</h3>}
                 </label>
@@ -139,12 +159,32 @@ export function Lobby({ sharedStates }: { sharedStates: ReturnType<typeof useSha
                         {lobbyMode === LobbyMode.CREATE ? <input
                             type="text"
                             value={String(availableShipSizes)}
-                            onChange={(e) =>
-                                setAvailableShipSizes(e.target.value.split(',').map(i => Number(i)))}
+                            onChange={(e) => {
+                                const newAvailableShipSizes = e.target.value.split(',').map(i => Number(i));
+                                setAvailableShipSizes(newAvailableShipSizes);
+
+                                setRemainingShips(calculateRemainingShips(placedShips.map(ship => ship.tiles.length), newAvailableShipSizes));
+                            }
+                            }
                             className="flex-grow p-2 border rounded-l"
                         /> : <h3>{String(availableShipSizes)}</h3>}
                     </div>
                 </label>
+
+                <div className="flex gap-2">
+                    <label>Vertical</label>
+                    <div
+                        className={`${placementAlignment === "horizontal" ? "bg-blue-500" : "bg-gray-200"
+                            } relative inline-flex h-6 w-11 items-center rounded-full cursor-pointer`}
+                        onClick={() => setPlacementAlignment(placementAlignment === "horizontal" ? "vertical" : "horizontal")}
+                    >
+                        <span
+                            className={`${placementAlignment === "horizontal" ? "translate-x-6" : "translate-x-1"
+                                } inline-block h-4 w-4 transform bg-white rounded-full transition-transform`}
+                        />
+                    </div>
+                    <label>Horizontal</label>
+                </div>
 
                 {/* Ships list */}
                 <div className="mt-4">
