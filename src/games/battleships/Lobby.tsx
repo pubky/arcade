@@ -22,9 +22,9 @@ export function Lobby({ sharedStates }: { sharedStates: ReturnType<typeof useSha
     const { client, context, states, setStates } = sharedStates;
     const { board, boardSize, availableShipSizes, uri, lobbyMode, enemyPubky, placedShips } = states;
     const { setBoardHash, setId, setUri, setNonce, setGameState, setEnemyPubky,
-        setBoardSize, setEnemyBoardHash, setAvailableShipSizes, setPlacedShips } = setStates;
+        setBoardSize, setEnemyBoardHash, setAvailableShipSizes, setPlacedShips, setBoard } = setStates;
 
-    const [placementAligment,] = useState<ShipAlignment>('horizontal');
+    const [placementAlignment, setPlacementAlignment] = useState<ShipAlignment>('horizontal');
     const [remainingShips, setRemainingShips] = useState<number[]>(availableShipSizes);
 
     const startMatch = () => {
@@ -76,11 +76,12 @@ export function Lobby({ sharedStates }: { sharedStates: ReturnType<typeof useSha
 
     const placeShip = (row: number, col: number): void => {
         const shipStart = `${row}-${col}`;
-        const align = placementAligment;
-        const ship = newShip({ align, size: availableShipSizes[availableShipSizes.length - 1], start: shipStart });
-        for (const item in ship) {
-            board[item] = Tile.SHIP;
+        const align = placementAlignment;
+        const ship = newShip({ align, size: remainingShips[remainingShips.length - 1], start: shipStart });
+        for (const tile of ship.tiles) {
+            board[tile] = Tile.SHIP;
         }
+        setBoard(board);
         setPlacedShips(placedShips.concat(ship));
         setRemainingShips(remainingShips.slice(0, remainingShips.length - 1));
     }

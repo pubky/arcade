@@ -60,7 +60,6 @@ export function Game({ sharedStates }: { sharedStates: ReturnType<typeof useShar
         const enemyState = getEnemyState(lastMove);
         const enemyTurnPath = getFilePath(enemyState, currentTurn);
         client.get(`matches/${id}/${enemyTurnPath}`, new TextEncoder().encode(enemyPubky as string)).then(value => {
-            console.log('value of get', value)
             if (value === null) return
             setLastEnemysig((value as { data: Record<string, string>, sig: string }).sig)
             handleEnemyMove(enemyState, (value as { data: Record<string, string>, sig: string }).data)
@@ -92,11 +91,8 @@ export function Game({ sharedStates }: { sharedStates: ReturnType<typeof useShar
 
     const handleEnemyAttack = (data: Record<string, string>) => {
         const { move } = data
-        console.log('enemy move', move)
 
         const result = placeShot({ hit: move, board, ships: placedShips });
-
-        console.log('result: ', result);
 
         // send res
         client.put({
@@ -114,7 +110,6 @@ export function Game({ sharedStates }: { sharedStates: ReturnType<typeof useShar
         }
 
         enemyBoard[key] = Tile.PENDING;
-        console.log('payload', payload)
         client.put({ path: `matches/${id}/${getFilePath(MatchState.MOVE, currentTurn)}`, payload, preSig: lastEnemySig as string })
         setLastMove(MatchState.MOVE)
         setMatchState(MatchState.WAIT);
@@ -179,7 +174,6 @@ export function Game({ sharedStates }: { sharedStates: ReturnType<typeof useShar
             case MatchState.CONF:
                 return
             case MatchState.WAIT:
-                console.log('hi');
                 return poll(waitForOtherPlayerMove);
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
