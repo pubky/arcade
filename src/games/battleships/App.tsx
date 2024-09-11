@@ -147,8 +147,8 @@ const useSharedState = () => {
   }
 }
 
-function MainMenu() {
-  const { states, setStates } = useSharedState();
+function MainMenu({ sharedStates }: { sharedStates: ReturnType<typeof useSharedState> }) {
+  const { states, setStates } = sharedStates;
   const { setUri, setGameState, setLobbyMode, setId, setEnemyPubky } = setStates;
   const { uri } = states;
 
@@ -197,8 +197,8 @@ function MainMenu() {
 }
 
 
-function Lobby() {
-  const { client, context, states, setStates } = useSharedState();
+function Lobby({ sharedStates }: { sharedStates: ReturnType<typeof useSharedState> }) {
+  const { client, context, states, setStates } = sharedStates;
   const { board, boardSize, availableShipSizes, uri, lobbyMode, enemyPubky, placedShips } = states;
   const { setBoardHash, setId, setUri, setNonce, setGameState, setEnemyPubky,
     setBoardSize, setEnemyBoardHash, setAvailableShipSizes, setPlacedShips } = setStates;
@@ -375,8 +375,8 @@ const poll = (pollFunction: () => void) => {
   return () => clearInterval(intervalId);
 }
 
-function Game() {
-  const { states, client, setStates } = useSharedState();
+function Game({ sharedStates }: { sharedStates: ReturnType<typeof useSharedState> }) {
+  const { states, client, setStates } = sharedStates;
   const { lobbyMode, id, enemyPubky, board, boardSize, enemyBoard, uri, score, placedShips } = states;
   const { setEnemyBoardHash, setBoard, setScore } = setStates;
 
@@ -564,23 +564,18 @@ function Game() {
 }
 
 function App() {
-  const { states } = useSharedState();
-  const { gameState } = states;
+  const sharedState = useSharedState();
+  const { gameState } = sharedState.states;
 
-  const getGamePage = (state: GameState) => {
-    switch (state) {
-      case GameState.MAIN:
-        return <MainMenu />
-      case GameState.LOBBY:
-        return <Lobby />
-      case GameState.MATCH:
-        return <Game />
-    }
-  }
+  const pageMap = {
+    [GameState.MAIN]: <MainMenu sharedStates={sharedState} />,
+    [GameState.LOBBY]: <Lobby sharedStates={sharedState} />,
+    [GameState.MATCH]: <Game sharedStates={sharedState} />
+  };
 
   return (
     <div className="App">
-      {getGamePage(gameState)}
+      {pageMap[gameState]}
     </div>
   );
 }
