@@ -7,8 +7,8 @@ export class BattleshipsClient {
 
   async start(board: string) {
     try {
-      const nonce = this.context.z32_encode(this.context.randomBytes());
-      const id = this.context.z32_encode(this.context.randomBytes(8));
+      const nonce = await this.context.z32_encode(await this.context.randomBytes());
+      const id = await this.context.z32_encode(await this.context.randomBytes(8));
 
       const initialBoardHash = await this.context.hash(board);
       const currentBoardHash = await this.context.hash(initialBoardHash + "/" + nonce);
@@ -26,7 +26,7 @@ export class BattleshipsClient {
 
   async join(board: string) {
     try {
-      const nonce = this.context.z32_encode(this.context.randomBytes());
+      const nonce = await this.context.z32_encode(await this.context.randomBytes());
 
       const initialBoardHash = await this.context.hash(board);
       const boardHash = await this.context.hash(initialBoardHash + "/" + nonce)
@@ -64,20 +64,20 @@ export class BattleshipsClient {
 
   async get(path: string, publicKey: Uint8Array) {
     try {
-      const url = `pubky://${this.context.z32_encode(Buffer.from(publicKey))}/pub/battleships.app/`;
+      const url = `pubky://${await this.context.z32_encode(Buffer.from(publicKey))}/pub/battleships.app/`;
       const result = await this.context.client_get(url + path);
 
       if (!result) {
         throw new Error("not found.");
       }
 
-      const body = JSON.parse(result.toString());
+      const body = JSON.parse(result.toString()) as { data: Record<string, string>, sig: string };
       const { data, sig } = body
 
       const encoder = new TextEncoder();
       const signatureBuffer = encoder.encode(sig).buffer;
 
-      const verify = await this.context.verify(publicKey, signatureBuffer, data)
+      const verify = await this.context.verify(publicKey, signatureBuffer, JSON.stringify(data))
 
       if (!verify)
         throw new Error(`failed to verify the signature`)

@@ -1,13 +1,7 @@
+/* eslint-disable @typescript-eslint/ban-ts-comment */
 'use client';
 
 import { createContext, useState } from 'react';
-
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-// @ts-expect-error
-import sodium from 'sodium-javascript';
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-// @ts-expect-error
-import { decode, encode } from 'z32';
 
 import {
   TClientContext
@@ -31,10 +25,6 @@ export function ClientWrapper({ children }: { children: React.ReactNode }) {
   const [homeserverURL, setHomeserverURL] = useState<string | null>(
     Utils.storage.get('homeserverURL')
   );
-
-  const isLoggedIn = async (): Promise<boolean> => {
-    return pubky === null
-  }
 
   const signUp = async (): Promise<void> => {
     try {
@@ -115,9 +105,14 @@ export function ClientWrapper({ children }: { children: React.ReactNode }) {
   };
 
 
-  const randomBytes = (n: number = 32): Buffer => {
+  const randomBytes = async (n: number = 32): Promise<Buffer> => {
+    // @ts-ignore
+    // eslint-disable-next-line
+    const sod = await import('sodium-javascript').then(sod => sod.load().then(() => sod));
+
     const buf = Buffer.alloc(n)
-    sodium.randombytes_buf(buf)
+    // eslint-disable-next-line
+    sod.randombytes_buf(buf)
     return buf
   }
 
@@ -173,6 +168,22 @@ export function ClientWrapper({ children }: { children: React.ReactNode }) {
     );
   }
 
+  const z32_encode = async (buffer: Buffer): Promise<string> => {
+    // @ts-ignore
+    // eslint-disable-next-line
+    const z32 = await import('z32').then(z32 => z32.load().then(() => z32));
+    // eslint-disable-next-line
+    return z32.encode(buffer)
+  }
+
+  const z32_decode = async (value: string): Promise<Buffer> => {
+    // @ts-ignore
+    // eslint-disable-next-line
+    const z32 = await import('z32').then(z32 => z32.load().then(() => z32));
+    // eslint-disable-next-line
+    return z32.decode(value);
+  }
+
   return (
     <ClientContext.Provider
       value={{
@@ -181,13 +192,12 @@ export function ClientWrapper({ children }: { children: React.ReactNode }) {
         homeserverURL,
         signUp,
         signOut,
-        isLoggedIn,
         client_put,
         client_get,
         client_delete,
         randomBytes,
-        z32_encode: encode,
-        z32_decode: decode,
+        z32_encode,
+        z32_decode,
         sign,
         verify,
         hash

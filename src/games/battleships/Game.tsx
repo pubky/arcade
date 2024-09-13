@@ -51,9 +51,11 @@ export function Game({ sharedStates }: { sharedStates: ReturnType<typeof useShar
         client.get(`matches/${id}/join`, new TextEncoder().encode(enemyPubky as string)).then(value => {
             if (value === null) return
             setMatchState(MatchState.MOVE);
-            setEnemyBoardHash((value as { data: Record<string, string>, sig: string }).data.boardHash as string)
-            setLastEnemysig((value as { data: Record<string, string>, sig: string }).sig)
-        })
+            setEnemyBoardHash(value.data.boardHash)
+            setLastEnemysig(value.sig)
+        }).catch((error => {
+            console.log('error', error)
+        }))
     }
 
     const waitForOtherPlayerMove = () => {
@@ -61,9 +63,11 @@ export function Game({ sharedStates }: { sharedStates: ReturnType<typeof useShar
         const enemyTurnPath = getFilePath(enemyState, currentTurn);
         client.get(`matches/${id}/${enemyTurnPath}`, new TextEncoder().encode(enemyPubky as string)).then(value => {
             if (value === null) return
-            setLastEnemysig((value as { data: Record<string, string>, sig: string }).sig)
-            handleEnemyMove(enemyState, (value as { data: Record<string, string>, sig: string }).data)
-        })
+            setLastEnemysig(value.sig)
+            handleEnemyMove(enemyState, value.data)
+        }).catch((error => {
+            console.log('error', error)
+        }))
     }
 
     const handleEnemyMove = (enemyState: MatchState, data: Record<string, string>) => {
@@ -99,8 +103,12 @@ export function Game({ sharedStates }: { sharedStates: ReturnType<typeof useShar
             path: `matches/${id}/${getFilePath(MatchState.RES, currentTurn)}`, payload: {
                 res: String(result)
             }, preSig: lastEnemySig as string
-        })
-        setBoard(board)
+        }).then((value => {
+            if (value === null) return
+            setBoard(board)
+        })).catch((error => {
+            console.log('error', error)
+        }))
     }
 
     const attackEnemy = (row: number, col: number) => {
@@ -110,9 +118,13 @@ export function Game({ sharedStates }: { sharedStates: ReturnType<typeof useShar
         }
 
         enemyBoard[key] = Tile.PENDING;
-        client.put({ path: `matches/${id}/${getFilePath(MatchState.MOVE, currentTurn)}`, payload, preSig: lastEnemySig as string })
-        setLastMove(MatchState.MOVE)
-        setMatchState(MatchState.WAIT);
+        client.put({ path: `matches/${id}/${getFilePath(MatchState.MOVE, currentTurn)}`, payload, preSig: lastEnemySig as string }).then((value => {
+            if (value === null) return;
+            setLastMove(MatchState.MOVE);
+            setMatchState(MatchState.WAIT);
+        })).catch((error => {
+            console.log('error', error)
+        }))
     }
 
     const handleEnemyConf = (data: Record<string, string>) => {
@@ -128,18 +140,23 @@ export function Game({ sharedStates }: { sharedStates: ReturnType<typeof useShar
             path: `matches/${id}/${getFilePath(MatchState.CONF, currentTurn)}`, payload: {
                 confirmation: 'true'
             }, preSig: lastEnemySig as string
-        })
-        setCurrentTurn(currentTurn + 1);
+        }).then((value => {
+            if (value === null) return;
+            setCurrentTurn(currentTurn + 1);
+        })).catch((error => {
+            console.log('error', error)
+        }))
     }
 
     const handleEnemyRes = (data: Record<string, string>) => {
         const { res } = data
-        if (res === ShotResult.MISS) {
+
+        if (res as ShotResult === ShotResult.MISS) {
             enemyBoard[lastMove as string] = Tile.MISS;
         }
         else {
             enemyBoard[lastMove as string] = Tile.HIT;
-            if (res === ShotResult.SUNK) {
+            if (res as ShotResult === ShotResult.SUNK) {
                 setScore([score[0] + 1, score[1]]);
             }
         }
@@ -197,7 +214,10 @@ export function Game({ sharedStates }: { sharedStates: ReturnType<typeof useShar
                     <h1 className="text-2xl font-bold m-2">Game URI:</h1>
                     <p>(click the link to copy)</p>
                 </div>
-                <button className="text-2xl font-bold bg-blue-200 p-0.5" onClick={() => navigator.clipboard.writeText(uri || '')}>
+                <button
+                    className="text-2xl font-bold bg-blue-200 p-0.5"
+                    onClick={() => { navigator.clipboard.writeText(uri || '').then((() => { })).catch((() => { })) }}
+                >
                     {uri?.slice(0, 10)}...
                 </button>
             </div>

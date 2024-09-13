@@ -40,7 +40,11 @@ export function Lobby({ sharedStates }: { sharedStates: ReturnType<typeof useSha
                 setUri(`pubky://${context.pubky}/pub/battleships.app/matches/${id}`);
                 setNonce(nonce)
                 setGameState(GameState.MATCH);
+            })).catch((error => {
+                console.log('error', error)
             }));
+        })).catch((error => {
+            console.log('error', error)
         }));
     }
 
@@ -52,9 +56,10 @@ export function Lobby({ sharedStates }: { sharedStates: ReturnType<typeof useSha
         setEnemyPubky(enemyPk)
 
         client.get(`matches/${id}/init`, new TextEncoder().encode(enemyPk)).then((enemyInit => {
+            if (enemyInit === null) return;
             setBoardSize(Number(enemyInit.data.size))
-            setEnemyBoardHash(enemyInit.data.boardHash as string)
-            setAvailableShipSizes((enemyInit.data.ships as string).split(',').map(i => Number(i)))
+            setEnemyBoardHash(enemyInit.data.boardHash)
+            setAvailableShipSizes((enemyInit.data.ships).split(',').map(i => Number(i)))
 
             client.join(JSON.stringify(board)).then((value => {
                 if (value === null) {
@@ -69,8 +74,14 @@ export function Lobby({ sharedStates }: { sharedStates: ReturnType<typeof useSha
                     preSig: enemyInit.sig
                 }).then((() => {
                     setGameState(GameState.MATCH)
+                })).catch((error => {
+                    console.log('error', error)
                 }));
+            })).catch((error => {
+                console.log('error', error)
             }))
+        })).catch((error => {
+            console.log('error', error)
         }))
     }
 
@@ -98,7 +109,7 @@ export function Lobby({ sharedStates }: { sharedStates: ReturnType<typeof useSha
         })
 
         const remaining = Object.keys(counts).map(key => counts[Number(key)] !== 0 ?
-            Array(Math.abs(counts[Number(key)])).fill(Number(key)) : []).flat();
+            Array<number>(Math.abs(counts[Number(key)])).fill(Number(key)) : []).flat();
         return remaining
     }
 
