@@ -46,23 +46,9 @@ function App() {
           <h2 className='font-bold m-2'>{game.name}</h2>
           <button
             onClick={() => setCurrentPage(Page.main)}
-            className="flex m-2 items-center justify-center w-8 h-8 text-white bg-red-500 rounded-full hover:bg-red-600 focus:outline-none"
-            aria-label="Close"
+            className="flex m-2 p-1 items-center justify-center w-fit text-black rounded-full hover:bg-red-600 focus:outline-none"
           >
-            <svg
-              className="w-4 h-4"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M6 18L18 6M6 6l12 12"
-              />
-            </svg>
+            Close
           </button>
         </div>
       </div>
