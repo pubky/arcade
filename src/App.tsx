@@ -3,6 +3,8 @@ import './App.css';
 import { ClientWrapper } from './client';
 import Battleships from './games/battleships/App';
 
+import CloseIcon from './assets/close.png';
+
 enum Page {
   main = 'main',
   game = 'game',
@@ -42,13 +44,16 @@ function App() {
     const { game } = props;
     return (
       <div className='fixed top-0 left-0 z-10 w-full'>
-        <div className='flex justify-between bg-cyan-300'>
-          <h2 className='font-bold m-2'>{game.name}</h2>
+        <div className='flex justify-between items-center bg-primary-blue border-white border-opacity-60 border-b'>
+          <h2 className='font-bold m-2 text-white leading-loose text-opacity-80'>{game.name}</h2>
           <button
             onClick={() => setCurrentPage(Page.main)}
-            className="flex m-2 p-1 items-center justify-center w-fit text-black rounded-full hover:bg-red-600 focus:outline-none"
+            className="flex m-2 p-1 bg-transparent items-center justify-center w-fit"
           >
-            Close
+            <img
+              className='w-4 h-4'
+              src={CloseIcon}>
+            </img>
           </button>
         </div>
       </div>
@@ -62,7 +67,7 @@ function App() {
 
     return (<div>
       <Header game={game}></Header>
-      <div className='fixed w-full left-0 top-12 z-10'>
+      <div className='fixed w-full left-0 top-12 z-9'>
         <ClientWrapper>
           <GameComponent />
         </ClientWrapper>
