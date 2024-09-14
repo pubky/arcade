@@ -7,7 +7,7 @@ import {
   TClientContext
 } from './types';
 
-import { Keypair } from '@synonymdev/pubky';
+import { Keypair, PublicKey } from '@synonymdev/pubky';
 
 import { Utils } from '../utils';
 
@@ -27,81 +27,67 @@ export function ClientWrapper({ children }: { children: React.ReactNode }) {
   );
 
   const signUp = async (): Promise<void> => {
-    try {
-      const keypair = Keypair.random();
-      const secretKey = keypair.secretKey();
-      const pubky = keypair.publicKey().z32();
-      const homeserverURL = `pubky://${pubky}/pub/`;
-
-      await client.signup(keypair, Homeserver);
-
-      Utils.storage.set('secret', secretKey);
-      Utils.storage.set('pubky', pubky);
-      Utils.storage.set('homeserverURL', homeserverURL);
-      setSecret(secretKey);
-      setPubky(pubky)
-      setHomeserverURL(homeserverURL);
-    } catch (error) {
-      console.log(error);
+    if (pubky !== null) {
+      const session = await client.session(PublicKey.from(pubky))
+      if (session) {
+        return
+      }
     }
+    const keypair = Keypair.random();
+    const secretKey = keypair.secretKey();
+    const newPubky = keypair.publicKey().z32();
+    const homeserverURL = `pubky://${newPubky}/pub/`;
+
+    await client.signup(keypair, Homeserver);
+
+    Utils.storage.set('secret', secretKey);
+    Utils.storage.set('pubky', newPubky);
+    Utils.storage.set('homeserverURL', homeserverURL);
+    setSecret(secretKey);
+    setPubky(newPubky)
+    setHomeserverURL(homeserverURL);
   };
 
   const signOut = async (): Promise<void> => {
-    try {
-      if (secret === null) {
-        return
-      }
-      const keypair = Keypair.fromSecretKey(secret);
-      await client.signout(keypair.publicKey());
-
-      Utils.storage.remove('pubky');
-      Utils.storage.remove('secret');
-      Utils.storage.remove('homeserverURL');
-      setSecret(null);
-      setPubky(null);
-      setHomeserverURL(null);
-    } catch (error) {
-      console.log(error);
+    if (secret === null) {
+      return
     }
+    const keypair = Keypair.fromSecretKey(secret);
+    await client.signout(keypair.publicKey());
+
+    Utils.storage.remove('pubky');
+    Utils.storage.remove('secret');
+    Utils.storage.remove('homeserverURL');
+    setSecret(null);
+    setPubky(null);
+    setHomeserverURL(null);
   };
 
   const client_put = async (path: string, content: Uint8Array): Promise<void> => {
-    try {
-      if (secret === null) {
-        throw Error("Not logged in.");
-      }
-
-      await client.put(homeserverURL + path, content)
-    } catch (error) {
-      console.log(error);
+    if (secret === null) {
+      throw Error("Not logged in.");
     }
+
+    await client.put(homeserverURL + path, content)
   };
 
   const client_get = async (path: string): Promise<Buffer | undefined> => {
-    try {
-      if (secret === null) {
-        throw Error("Not logged in.");
-      }
-      const result = await client.get(path.startsWith('pubky://') ? path : homeserverURL + path);
-      if (result === undefined) {
-        throw Error("Not found.");
-      }
-      return Buffer.from(result);
-    } catch (error) {
-      console.log(error);
+    if (secret === null) {
+      throw Error("Not logged in.");
     }
+    const result = await client.get(path.startsWith('pubky://') ? path : homeserverURL + path);
+    if (result === undefined) {
+      throw Error("Not found.");
+    }
+    return Buffer.from(result);
   };
 
   const client_delete = async (path: string): Promise<void> => {
-    try {
-      if (secret === null) {
-        throw Error("Not logged in.");
-      }
-
-      await client.delete(homeserverURL + path);
-    } catch (error) {
-      console.log(error);
+    if (secret === null) {
+      throw Error("Not logged in.");
     }
+
+    await client.delete(homeserverURL + path);
   };
 
 
