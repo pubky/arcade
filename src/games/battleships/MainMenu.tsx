@@ -1,6 +1,9 @@
 import { GameState, LobbyMode } from ".";
 import { useSharedState } from "./state";
 
+import BattleshipsLogo from './assets/battleships.png';
+import PubkyArcadeLogo from './assets/pubky-arcade.png';
+
 export function MainMenu({ sharedStates }: { sharedStates: ReturnType<typeof useSharedState> }) {
     const { states, setStates } = sharedStates;
     const { setUri, setGameState, setLobbyMode, setId, setEnemyPubky } = setStates;
@@ -20,20 +23,29 @@ export function MainMenu({ sharedStates }: { sharedStates: ReturnType<typeof use
     };
 
     return (
-        <div className="flex flex-col items-center justify-center h-screen bg-blue-100">
-            <h1 className="text-4xl font-bold mb-8 text-blue-800">Battleships</h1>
+        <div className="flex flex-col items-center justify-center h-screen bg-primary-blue">
+            <img src={PubkyArcadeLogo}></img>
+            <img src={BattleshipsLogo}></img>
+            <div className="flex flex-col gap-2 w-1/3 opacity-60 text-white">
+                <p className="font-bold">
+                    Play the classical game of battleships, using the Pubky Protocol.
+                </p>
+                <p className="">
+                    Click Play Game to start a new game or if you have a link it paste it below and click Join!
+                </p>
+            </div>
             <button
                 onClick={() => startMatch(LobbyMode.CREATE)}
-                className="m-2 px-6 py-3 bg-blue-500 text-white font-semibold rounded-lg shadow-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-opacity-75"
+                className="m-2 px-6 py-3 bg-primary-pink text-white font-semibold rounded-full shadow-md hover:opacity-80"
             >
-                Start Game
+                PLAY GAME
             </button>
-            <span> Or </span>
-            <form onSubmit={() => startMatch(LobbyMode.JOIN)} className='w-full mt-2 flex flex-col items-center justify-center'>
+            <p className="text-white opacity-60"> Or </p>
+            <form onSubmit={() => startMatch(LobbyMode.JOIN)} className='w-full mt-2 gap-2 flex flex-col items-center justify-center'>
                 <input
                     type="text"
                     id="join-url"
-                    placeholder='Enter match uri'
+                    placeholder='Enter match URI'
                     onChange={(e) => {
                         setUri(e.target.value);
                     }}
@@ -41,9 +53,11 @@ export function MainMenu({ sharedStates }: { sharedStates: ReturnType<typeof use
                     className="w-1/4 p-2 border rounded" />
                 <button
                     type='submit'
-                    className="m-2 px-6 py-3 bg-blue-800 text-white font-semibold rounded-lg shadow-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-opacity-75"
+                    disabled={(!uri || uri?.length === 0)}
+                    className={`m-2 px-6 py-3 rounded-full text-white font-semibold shadow-md 
+                        ${(!uri || uri?.length === 0) ? 'bg-secondary-blue' : 'bg-primary-pink hover:opacity-80'}`}
                 >
-                    Join Game
+                    JOIN GAME
                 </button>
             </form>
         </div>
