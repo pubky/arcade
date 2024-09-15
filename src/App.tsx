@@ -28,11 +28,13 @@ const GamePage = ({ exitToMain, gameKey }: { gameKey: string, exitToMain: () => 
   const game = games[gameKey];
   const GameComponent = game.component
 
-  return (<div>
+  return (<div className='left-0 top-0'>
     <ClientWrapper>
       <Header exitToMain={exitToMain} game={game}></Header>
-      <div className='fixed w-full left-0 top-12 z-9'>
-        <GameComponent />
+      <div className='fixed w-screen h-full left-0 top-12'>
+        <div className='overflow-y-scroll h-full'>
+          <GameComponent />
+        </div>
       </div>
     </ClientWrapper>
   </div>)
@@ -46,7 +48,7 @@ const MainMenu = ({ selectGame }: { selectGame: (key: string) => void }) => {
     context.signUp().catch(() => console.log('error signing up',))
   }, [])
 
-  return (<div>
+  return (<div className='text-white'>
     <h1>Arcade</h1>
     <ul className='flex'>
       {Object.keys(games).map(game_key => {
@@ -64,8 +66,8 @@ const Header = ({ game, exitToMain }: { game: Game, exitToMain: () => void }) =>
   const context = useContext(ClientContext);
 
   return (
-    <div className='fixed top-0 left-0 z-10 w-full'>
-      <div className='flex justify-between items-center bg-primary-blue border-white border-opacity-60 border-b'>
+    <div className='fixed top-0 left-0 z-10 w-screen h-12 bg-primary-blue'>
+      <div className='flex justify-between items-center border-white border-opacity-60 border-b'>
         <h2 className='font-bold m-2 text-white leading-loose text-opacity-80'>{game.name}</h2>
         <div
           className='flex gap-2 items-center justify-center'

@@ -10,14 +10,21 @@ export function Board(input: { board: TBoard, size: number, onCellClick: ((i: nu
         '--cell-size': `calc(100 / ${size})`,  // Calculate the cell size dynamically based on the fixed board size
     };
 
+    const gridStyleRow = {
+        gridTemplateRows: `repeat(${size}, minmax(0, 1fr))`,    // Creates `size` rows
+    };
+    const gridStyleCol = {
+        gridTemplateColumns: `repeat(${size}, minmax(0, 1fr))`, // Creates `size` columns
+    };
+
     const drawBoard = (inputBoard: TBoard, size: number, onCellClick: ((i: number, j: number) => void) | undefined) => {
         const getCellColor = (value: Tile) => {
             switch (value) {
-                case Tile.WATER: return 'bg-blue-500';
+                case Tile.WATER: return 'bg-secondary-blue';
                 case Tile.SHIP: return 'bg-gray-500';
                 case Tile.MISS: return 'bg-black';
                 case Tile.HIT: return 'bg-red-500';
-                default: return 'bg-blue-500'; // Water
+                default: return 'bg-secondary-blue'; // Water
             }
         };
         const renderItems = []
@@ -39,7 +46,17 @@ export function Board(input: { board: TBoard, size: number, onCellClick: ((i: nu
             }
             renderItems.push(renderRow)
         }
-        return <div className={`grid gap-0.5 w-96 h-96 bg-gray-700 p-2`} style={gridStyle}>{renderItems}</div>
+        return (
+            <div className="relative p-6 w-full h-fit">
+                <div className="absolute top-0 left-0 px-[26px] w-full grid opacity-60 justify-center gap-0.5" style={gridStyleCol}>
+                    {[...Array(size).keys()].map(index => (<p key={index} className="text-center">{index + 1}</p>))}
+                </div>
+                <div className="absolute top-0 left-0 py-[23px] h-full grid opacity-60 items-center" style={gridStyleRow}>
+                    {[...Array(size).keys()].map(index => (<p key={index} className="text-center leading-loose">{String.fromCharCode(index + 'A'.charCodeAt(0))}</p>))}
+                </div>
+                <div className={`w-full grid gap-0.5 bg-gray-700 p-0.5`} style={gridStyle}>{renderItems}</div>
+            </div>
+        )
     }
     return drawBoard(board, size, onCellClick)
 }
