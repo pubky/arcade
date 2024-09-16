@@ -42,6 +42,7 @@ export enum ShotResult {
 // Ship has a bunch of points which are the board's keys.
 // The items are sorted from left to right for horizontal and top to bottom for vertical ones.
 export interface Ship {
+    align: ShipAlignment,
     tiles: string[],
     hits: string[]
 }

@@ -23,10 +23,10 @@ export function MainMenu({ sharedStates }: { sharedStates: ReturnType<typeof use
     };
 
     return (
-        <div className="flex flex-col items-center justify-center h-screen bg-primary-blue">
+        <div className="flex w-3/4 md:w-1/3 mx-auto py-12 flex-col items-center justify-center">
             <img src={PubkyArcadeLogo}></img>
             <img src={BattleshipsLogo}></img>
-            <div className="flex flex-col gap-2 w-1/3 opacity-60 text-white">
+            <div className="flex flex-col gap-2 w-fit opacity-60 text-white">
                 <p className="font-bold">
                     Play the classical game of battleships, using the Pubky Protocol.
                 </p>
@@ -50,7 +50,7 @@ export function MainMenu({ sharedStates }: { sharedStates: ReturnType<typeof use
                         setUri(e.target.value);
                     }}
                     value={uri || ''}
-                    className="w-1/4 p-2 border rounded" />
+                    className="w-full p-2 border rounded" />
                 <button
                     type='submit'
                     disabled={(!uri || uri?.length === 0)}
