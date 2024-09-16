@@ -1,5 +1,7 @@
 'use client';
 
+import { Buffer } from 'buffer';
+
 import { TClientContext } from '../../client/types';
 
 export class BattleshipsClient {

@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/ban-ts-comment */
 'use client';
 
+import { Buffer } from 'buffer';
 import { createContext, useState } from 'react';
 
 import {
@@ -94,7 +95,7 @@ export function ClientWrapper({ children }: { children: React.ReactNode }) {
   const randomBytes = async (n: number = 32): Promise<Buffer> => {
     // @ts-ignore
     // eslint-disable-next-line
-    const sod = await import('sodium-javascript').then(sod => sod.load().then(() => sod));
+    const sod = await import('sodium-javascript');
 
     const buf = Buffer.alloc(n)
     // eslint-disable-next-line
@@ -157,7 +158,7 @@ export function ClientWrapper({ children }: { children: React.ReactNode }) {
   const z32_encode = async (buffer: Buffer): Promise<string> => {
     // @ts-ignore
     // eslint-disable-next-line
-    const z32 = await import('z32').then(z32 => z32.load().then(() => z32));
+    const z32 = await import('z32');
     // eslint-disable-next-line
     return z32.encode(buffer)
   }
@@ -165,7 +166,7 @@ export function ClientWrapper({ children }: { children: React.ReactNode }) {
   const z32_decode = async (value: string): Promise<Buffer> => {
     // @ts-ignore
     // eslint-disable-next-line
-    const z32 = await import('z32').then(z32 => z32.load().then(() => z32));
+    const z32 = await import('z32');
     // eslint-disable-next-line
     return z32.decode(value);
   }

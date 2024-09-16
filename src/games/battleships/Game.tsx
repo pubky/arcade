@@ -197,16 +197,32 @@ export function Game({ sharedStates }: { sharedStates: ReturnType<typeof useShar
     }, [matchState])
 
     return (
-        <div className="flex flex-col items-center p-8 bg-blue-100 min-h-screen">
+        <div className="flex flex-col items-center p-8">
             <h2 className="text-2xl font-bold mb-4 text-blue-800">{getStateTitle(matchState)}</h2>
             <div className="flex flex-wrap justify-center gap-8 mb-8">
                 <div>
                     <h3 className="text-xl font-semibold mb-2 text-blue-700">Your Board</h3>
-                    <Board board={board} size={boardSize} onCellClick={undefined} />
+                    <Board
+                        board={board}
+                        size={boardSize}
+                        ships={placedShips}
+                        onCellClick={undefined}
+                        onShipDelete={undefined}
+                        onShipReplace={undefined}
+                        onShipRotate={undefined}
+                    />
                 </div>
                 <div>
                     <h3 className="text-xl font-semibold mb-2 text-blue-700">Enemy Board @{enemyPubky?.slice(0, 8)}...</h3>
-                    <Board board={enemyBoard} size={boardSize} onCellClick={attackEnemy} />
+                    <Board
+                        board={enemyBoard}
+                        size={boardSize}
+                        onCellClick={attackEnemy}
+                        ships={undefined}
+                        onShipDelete={undefined}
+                        onShipReplace={undefined}
+                        onShipRotate={undefined}
+                    />
                 </div>
             </div>
             <div className='flex flex-col'>
