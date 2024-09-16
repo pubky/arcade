@@ -2,6 +2,7 @@ import { useContext, useEffect, useRef, useState } from "react";
 import "./App.css";
 import { ClientContext, ClientWrapper } from "./client";
 import Battleships from "./games/battleships/App";
+import TicTacToe from "./games/tictactoe/App";
 
 import batthleships from "./assets/Battleships.png";
 import Games from "./assets/games.png";
@@ -9,7 +10,7 @@ import Overview from "./assets/Overview.png";
 import overviewImg from "./assets/overviewImg.png";
 import PubkyArcadeLogo from "./assets/pubky-arcade.png";
 import PUBKY from "./assets/PUBKY.png";
-import TicTacToe from "./assets/TicTacToe.png";
+import TicTacToeLogo from "./assets/TicTacToeLogo.png";
 
 enum Page {
   main = "main",
@@ -25,6 +26,10 @@ const games: Record<string, Game> = {
   battleships: {
     name: "Battleships",
     component: Battleships,
+  },
+  tictactoe: {
+    name: "TicTacToe",
+    component: TicTacToe,
   },
 };
 
@@ -106,9 +111,9 @@ const MainMenu = ({ selectGame }: { selectGame: (key: string) => void }) => {
             </div>
             <div className="bg-[url('./assets/ticTacToeBg.png')] bg-cover bg-center w-[524px] h-[300px] flex items-center justify-center">
               <div className="cursor-pointer flex flex-col justify-center items-center w-[324px] h-48 rounded-[11px] border border-white border-opacity-60 backdrop-blur-[14px]">
-                <img src={TicTacToe} />
+                <img src={TicTacToeLogo} />
                 <button
-                  onClick={() => selectGame("battleships")}
+                  onClick={() => selectGame("tictactoe")}
                   className="mt-8 px-6 py-4 bg-primary-pink text-white font-semibold rounded-full shadow-md hover:opacity-80"
                 >
                   PLAY NOW
