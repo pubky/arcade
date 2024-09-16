@@ -208,6 +208,29 @@ export function Lobby({ sharedStates }: { sharedStates: ReturnType<typeof useSha
         setPlacedShips(newFleet);
     }
 
+    const randomizeFleetPlacement = () => {
+        let newFleet = placedShips;
+        for (const shipSize of remainingShips) {
+            const row = Math.floor(Math.random() * boardSize);
+            const col = Math.floor(Math.random() * boardSize);
+            const shipStart = `${row}-${col}`;
+            const align = 'horizontal';
+            const ship = newShip({ align, size: shipSize, start: shipStart, boardSize });
+            newFleet = newFleet.concat(ship)
+            const hasCollision = checkFleetCollision(newFleet)
+            if (hasCollision) {
+                return randomizeFleetPlacement();
+            }
+            for (const tile of ship.tiles) {
+                board[tile] = Tile.SHIP;
+            }
+        }
+        setBoard(board);
+        setPlacedShips(newFleet);
+        setRemainingShips([]);
+        setSelectedShipIndex(null);
+    }
+
     function LobbySettings() {
         return (
             <div className="bg-secondary-blue p-2 px-4 flex flex-col rounded-md md:w-1/3 w-full">
@@ -316,7 +339,15 @@ export function Lobby({ sharedStates }: { sharedStates: ReturnType<typeof useSha
 
                 {/* Your Fleet */}
                 <div className="flex flex-col w-5/6 pt-10">
-                    <p className="font-bold text-xl">Your Fleet</p>
+                    <div className="flex gap-10 items-center">
+                        <p className="font-bold text-xl">Your Fleet</p>
+                        <button
+                            className="bg-neutral-blue px-4 py-1 rounded-full font-semibold"
+                            onClick={() => { randomizeFleetPlacement(); }}
+                        >
+                            RANDOMIZE
+                        </button>
+                    </div>
                     <div className="flex flex-wrap shrink-0 gap-10">
                         {yourFleet.map((fleetShip, index) => (
                             <div className="w-fit box-border relative gap-1 flex-col" key={index}>
