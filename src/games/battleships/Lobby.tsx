@@ -1,105 +1,42 @@
 import { useEffect, useState } from "react";
 import { GameState, LobbyMode, Ship, ShipAlignment, Tile } from ".";
 import { Board } from "./Board";
+import { ShipComponent } from "./Ship";
+import { ShipSelectDropDown } from "./ShipsDropDown";
 import { useSharedState } from "./state";
 
-import ShipEndDownTile from './assets/ship-end-down.png';
-import ShipEndLeftTile from './assets/ship-end-left.png';
-import ShipEndRightTile from './assets/ship-end-right.png';
-import ShipEndUpTile from './assets/ship-end-up.png';
-import ShipMidHorizontalTile from './assets/ship-mid-horizontal.png';
-import ShipMidVerticalTile from './assets/ship-mid-vertical.png';
 
-const newShip = (input: { start: string, align: ShipAlignment, size: number }): Ship => {
-    const { align, size, start } = input;
+const newShip = (input: { start: string, align: ShipAlignment, size: number, boardSize: number }): Ship => {
+    const { align, size, start, boardSize } = input;
+    console.log('new ship', { ...input });
+    const [startRow, startCol] = start.split('-').map(i => Number(i));
+
+    let direction = 1;
+
+    if (align === 'horizontal' && startCol + size > boardSize) {
+        direction = -1
+    }
+
+    if (align === 'vertical' && startRow + size > boardSize) {
+        direction = -1
+    }
+
+    console.log('new ship direction', { direction });
+
     const tiles = [start]
     for (let i = 1; i < size; i++) {
         const previous = tiles[i - 1];
         const [row, col] = previous.split('-').map(i => Number(i));
-        const newKey = align === 'horizontal' ? [row, col + 1] : [row + 1, col];
+        const newKey = align === 'horizontal' ? [row, col + direction] : [row + direction, col];
         tiles.push(newKey.join('-'));
     }
+
+    console.log(tiles)
     return {
         align,
-        tiles,
+        tiles: direction === 1 ? tiles : tiles.reverse(),
         hits: []
     }
-}
-
-function ShipSelectDropDown({ onSelect, options, selectedValue }: { onSelect: (option: string) => void, options: string[], selectedValue: string }) {
-    const [isOpen, setIsOpen] = useState(false);
-
-    return (
-        <div className="relative w-full h-fit rounded bg-neutral-blue" onClick={() => setIsOpen(!isOpen)}>
-            <div
-                className="flex items-center cursor-pointer px-1 py-1"
-            >
-                <div className="flex flex-wrap justify-between items-center w-11/12">
-                    <p className="leading-loose text-sm font-semibold">
-                        {selectedValue ? `Ship ${selectedValue}` : 'Select a ship size'}
-                    </p>
-                    {selectedValue && <ShipComponent renderSize={6} ship={{ align: 'horizontal', hits: [], tiles: Array<string>(Number(selectedValue)).fill('1-1') }}></ShipComponent>}
-                </div>
-                <div className="flex w-1/12">
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1" stroke="currentColor" className="size-6">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
-                    </svg>
-                </div>
-            </div>
-
-            {isOpen && (
-                <div
-                    className="absolute w-full border mt-1 z-10 bg-neutral-blue rounded divide-y text-sm font-semibold"
-                >
-                    {options.map(option => (
-                        <div
-                            key={option}
-                            className="flex justify-between items-center px-2 py-1"
-                            onClick={() => { setIsOpen(false); onSelect(option); }}
-                        >
-                            <p className="leading-loose">{`Ship ${option}`}</p>
-                            <ShipComponent renderSize={4} ship={{ align: 'horizontal', hits: [], tiles: Array<string>(Number(option)).fill('1-1') }}></ShipComponent>
-                        </div>
-                    ))}
-                </div>
-            )}
-        </div>
-    );
-}
-
-
-export function ShipComponent({ ship, renderSize = 8 }: { ship: Ship, renderSize?: number }) {
-    const { tiles, align } = ship;
-    function ShipTile({ image, isHit }: { image: string; isHit: boolean }) {
-        return (
-            <div className={`min-w-${renderSize} w-${renderSize} flex flex-grow-0 relative`}>
-                <img className={`w-fit`} src={image} />
-                <div className={`w-1/2 h-1/2 absolute ${isHit ? 'bg-primary-pink' : 'bg-primary-blue'} 
-                ${isHit ? 'border-primary-pink' : 'border-action-blue'}
-                    top-1/4 start-1/4 rounded-full border`}></div>
-            </div>
-        )
-    }
-
-    return (<div className={`flex p-1 w-fit ${align === 'vertical' ? 'flex-col' : ''}`}>
-        {
-            tiles.map((tile, index) => {
-                if (index === 0) {
-                    return (
-                        <ShipTile isHit={false} key={index} image={align === 'vertical' ? ShipEndUpTile : ShipEndLeftTile} />
-                    )
-                } else if (index === tiles.length - 1) {
-                    return (
-                        <ShipTile isHit={false} key={index} image={align === 'vertical' ? ShipEndDownTile : ShipEndRightTile} />
-                    )
-                } else {
-                    return (
-                        <ShipTile isHit={false} key={index} image={align === 'vertical' ? ShipMidVerticalTile : ShipMidHorizontalTile} />
-                    )
-                }
-            })
-        }
-    </div >)
 }
 
 export function Lobby({ sharedStates }: { sharedStates: ReturnType<typeof useSharedState> }) {
@@ -108,18 +45,21 @@ export function Lobby({ sharedStates }: { sharedStates: ReturnType<typeof useSha
     const { setBoardHash, setId, setUri, setNonce, setGameState, setEnemyPubky,
         setBoardSize, setEnemyBoardHash, setAvailableShipSizes, setPlacedShips, setBoard } = setStates;
 
-    const [placementAlignment, setPlacementAlignment] = useState<ShipAlignment>('horizontal');
     const [selectedShipIndex, setSelectedShipIndex] = useState<number | null>(null);
     const [dropDownSelectedShip, setDropDownSelectedShip] = useState<string>('2');
     const [remainingShips, setRemainingShips] = useState<number[]>(availableShipSizes);
 
     const [yourFleet, setYourFleet] = useState<Ship[]>(
-        availableShipSizes.map(size => ({ align: 'horizontal', hits: [], tiles: Array(size).fill('1-1') }))
+        remainingShips.map(size => ({ align: 'horizontal', hits: [], tiles: Array(size).fill('1-1') }))
     );
 
     useEffect(() => {
-        setYourFleet(availableShipSizes.map(size => ({ align: 'horizontal', hits: [], tiles: Array(size).fill('1-1') })))
-    }, [availableShipSizes])
+        setYourFleet(remainingShips.map(size => ({ align: 'horizontal', hits: [], tiles: Array(size).fill('1-1') })))
+    }, [remainingShips])
+
+    const readyToJoin = (): boolean => {
+        return (placedShips.length === availableShipSizes.length) && (!!enemyPubky)
+    }
 
     const startMatch = () => {
         client.start(JSON.stringify(board)).then((value => {
@@ -179,32 +119,93 @@ export function Lobby({ sharedStates }: { sharedStates: ReturnType<typeof useSha
         }))
     }
 
+    const checkFleetCollision = (fleet: Ship[]): boolean => {
+        const countMap: Record<string, number> = {}
+        for (const ship of fleet) {
+            for (const tile of ship.tiles) {
+                const current = countMap[tile];
+                if (current === 1) {
+                    return true
+                }
+                countMap[tile] = 1
+            }
+        }
+        return false
+    }
+
     const placeShip = (row: number, col: number): void => {
         const shipStart = `${row}-${col}`;
-        const align = placementAlignment;
-        const ship = newShip({ align, size: remainingShips[remainingShips.length - 1], start: shipStart });
+        const align = 'horizontal';
+        const ship = newShip({ align, size: remainingShips[selectedShipIndex as number], start: shipStart, boardSize });
+        const newFleet = placedShips.concat(ship)
+        const hasCollision = checkFleetCollision(newFleet)
+        if (hasCollision) {
+            alert('Ships should not be colliding.')
+            return
+        }
         for (const tile of ship.tiles) {
             board[tile] = Tile.SHIP;
         }
         setBoard(board);
-        setPlacedShips(placedShips.concat(ship));
-        setRemainingShips(remainingShips.slice(0, remainingShips.length - 1));
+        setPlacedShips(newFleet);
+        setRemainingShips(
+            remainingShips.slice(0, selectedShipIndex as number).concat(
+                remainingShips.slice(selectedShipIndex as number + 1)
+            )
+        );
+        setSelectedShipIndex(null);
     }
 
-    const calculateRemainingShips = (placed: number[], available: number[]): number[] => {
-        const counts: Record<number, number> = {};
-        available.forEach(item => {
-            const current = counts[item] || 0;
-            counts[item] = current + 1;
-        })
-        placed.forEach(item => {
-            const current = counts[item] || 0;
-            counts[item] = current - 1;
-        })
+    const removeShip = (index: number): void => {
+        const ship = placedShips[index];
+        for (const tile of ship.tiles) {
+            board[tile] = Tile.WATER;
+        }
+        setBoard(board);
+        setPlacedShips(placedShips.slice(0, index).concat(placedShips.slice(index + 1)));
+        setRemainingShips(
+            remainingShips.concat(ship.tiles.length)
+        );
+    }
 
-        const remaining = Object.keys(counts).map(key => counts[Number(key)] !== 0 ?
-            Array<number>(Math.abs(counts[Number(key)])).fill(Number(key)) : []).flat();
-        return remaining
+    const rotateShip = (index: number): void => {
+        const ship = placedShips[index];
+        const rotatedShip = newShip({ start: ship.tiles[0], size: ship.tiles.length, align: ship.align === 'vertical' ? 'horizontal' : 'vertical', boardSize })
+        const newFleet = placedShips.slice(0, index).concat(rotatedShip).concat(placedShips.slice(index + 1));
+        const hasCollision = checkFleetCollision(newFleet)
+        if (hasCollision) {
+            alert('Ships should not be colliding.')
+            return
+        }
+        for (const tile of ship.tiles) {
+            board[tile] = Tile.WATER;
+        }
+        for (const tile of rotatedShip.tiles) {
+            board[tile] = Tile.SHIP;
+        }
+        setBoard(board);
+        setPlacedShips(newFleet);
+    }
+
+    const replaceShip = (row: number, col: number, index: number): void => {
+        const shipStart = `${row}-${col}`;
+        const ship = placedShips[index];
+        const replacedShip = newShip({ start: shipStart, size: ship.tiles.length, align: ship.align, boardSize })
+        const newFleet = placedShips.slice(0, index).concat(replacedShip).concat(placedShips.slice(index + 1));
+        const hasCollision = checkFleetCollision(newFleet)
+        if (hasCollision) {
+            alert('Ships should not be colliding.')
+            return
+        }
+        for (const tile of ship.tiles) {
+            board[tile] = Tile.WATER;
+        }
+        for (const tile of replacedShip.tiles) {
+            board[tile] = Tile.SHIP;
+        }
+
+        setBoard(board);
+        setPlacedShips(newFleet);
     }
 
     function LobbySettings() {
@@ -273,7 +274,7 @@ export function Lobby({ sharedStates }: { sharedStates: ReturnType<typeof useSha
 
                 {/* Ships input */}
                 {lobbyMode === LobbyMode.CREATE && (<label className="mb-2 flex flex-col">
-                    Select Ship:
+                    Add more ships:
                     <div className="flex w-full mt-2 border rounded">
                         <ShipSelectDropDown
                             selectedValue={dropDownSelectedShip}
@@ -281,7 +282,7 @@ export function Lobby({ sharedStates }: { sharedStates: ReturnType<typeof useSha
                                 const newAvailableShipSizes = availableShipSizes.concat(Number(option));
                                 setAvailableShipSizes(newAvailableShipSizes);
                                 setDropDownSelectedShip(option);
-                                setRemainingShips(calculateRemainingShips(placedShips.map(ship => ship.tiles.length), newAvailableShipSizes));
+                                setRemainingShips(remainingShips.concat(Number(option)));
                             }}
                             options={['2', '3', '4', '5', '6']}
                         />
@@ -292,27 +293,43 @@ export function Lobby({ sharedStates }: { sharedStates: ReturnType<typeof useSha
     }
 
     return (
-        <div className="sm:w-11/12 md:w-full lg:w-3/4 mx-auto py-4 px-1 lg:py-12 text-white">
+        <div className="sm:w-11/12 md:w-full lg:w-3/4 mx-auto mt-10 mb-20 py-4 px-1 lg:py-12 text-white">
             <div className="flex flex-col items-center">
                 <div className="flex flex-col-reverse md:flex-row md:w-5/6 w-full gap-8 md:gap-0">
-                    <Board onCellClick={availableShipSizes.length !== placedShips.length ? placeShip : undefined} board={board} size={boardSize} />
+                    <Board
+                        onCellClick={selectedShipIndex === null ? undefined : placeShip}
+                        board={board}
+                        size={boardSize}
+                        ships={placedShips}
+                        onShipDelete={(index) => {
+                            removeShip(index);
+                        }}
+                        onShipRotate={(index) => {
+                            rotateShip(index);
+                        }}
+                        onShipReplace={(row, col, index) => {
+                            replaceShip(row, col, index);
+                        }}
+                    />
                     <LobbySettings />
                 </div>
 
                 {/* Your Fleet */}
                 <div className="flex flex-col w-5/6 pt-10">
                     <p className="font-bold text-xl">Your Fleet</p>
-                    <div className="flex flex-wrap shrink-0 gap-8">
+                    <div className="flex flex-wrap shrink-0 gap-10">
                         {yourFleet.map((fleetShip, index) => (
-                            <div className="w-fit relative gap-1 flex-col" key={index}>
+                            <div className="w-fit box-border relative gap-1 flex-col" key={index}>
                                 <p>Ship {fleetShip.tiles.length}</p>
-                                <div className="flex">
-                                    <ShipComponent ship={fleetShip}></ShipComponent>
+                                <div className={`flex cursor-pointer border 
+                                    ${index === selectedShipIndex ? '' : 'border-transparent'}
+                                `} onClick={() => setSelectedShipIndex(index === selectedShipIndex ? null : index)}>
+                                    <ShipComponent ship={fleetShip} renderSize={8}></ShipComponent>
                                     <div className="absolute -end-4 bottom-0">
                                         <button className="w-4" onClick={() => {
                                             const newAvailableShipSizes = availableShipSizes.slice(0, index).concat(availableShipSizes.slice(index + 1))
                                             setAvailableShipSizes(newAvailableShipSizes);
-                                            setRemainingShips(calculateRemainingShips(placedShips.map(ship => ship.tiles.length), newAvailableShipSizes));
+                                            setRemainingShips(remainingShips.slice(0, remainingShips.length - 1));
                                         }}>
                                             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1" stroke="currentColor" className="w-full">
                                                 <path strokeLinecap="round" strokeLinejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" />
@@ -326,9 +343,9 @@ export function Lobby({ sharedStates }: { sharedStates: ReturnType<typeof useSha
                 </div>
                 <button
                     onClick={lobbyMode === LobbyMode.CREATE ? startMatch : joinMatch}
-                    disabled={placedShips.length !== availableShipSizes.length}
+                    disabled={!readyToJoin()}
                     className={`m-2 px-6 py-3 rounded-full text-white font-semibold shadow-md 
-                        ${placedShips.length !== availableShipSizes.length ? 'bg-secondary-blue' : 'bg-primary-pink hover:opacity-80'}`}
+                        ${!readyToJoin() ? 'bg-secondary-blue' : 'bg-primary-pink hover:opacity-80'}`}
                 >
                     {lobbyMode === LobbyMode.CREATE ? 'START' : 'JOIN'}
                 </button>
