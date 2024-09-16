@@ -210,6 +210,7 @@ export function Lobby({ sharedStates }: { sharedStates: ReturnType<typeof useSha
 
     const randomizeFleetPlacement = () => {
         let newFleet = placedShips;
+        const tempBoard = board;
         for (const shipSize of remainingShips) {
             const row = Math.floor(Math.random() * boardSize);
             const col = Math.floor(Math.random() * boardSize);
@@ -222,10 +223,10 @@ export function Lobby({ sharedStates }: { sharedStates: ReturnType<typeof useSha
                 return randomizeFleetPlacement();
             }
             for (const tile of ship.tiles) {
-                board[tile] = Tile.SHIP;
+                tempBoard[tile] = Tile.SHIP;
             }
         }
-        setBoard(board);
+        setBoard(tempBoard);
         setPlacedShips(newFleet);
         setRemainingShips([]);
         setSelectedShipIndex(null);
@@ -244,9 +245,9 @@ export function Lobby({ sharedStates }: { sharedStates: ReturnType<typeof useSha
                     >
                         <div className="flex overflow-hidden">
                             <p className="overflow-hidden">
-                                {uri || 'babeothunetohuntoehuntoehnuthonetuhntoeuheabba'}
+                                {uri}
                             </p>
-                            <p>...</p>
+                            {uri ? <p>...</p> : <></>}
                         </div>
                         <div className="w-6 pt-1 px-1">
                             <button>
@@ -267,13 +268,13 @@ export function Lobby({ sharedStates }: { sharedStates: ReturnType<typeof useSha
                         onBlur={(e) =>
                             setEnemyPubky(e.target.value)}
                         className="w-full p-2 border rounded bg-neutral-blue"
-                    /> : <p>{enemyPubky}</p>}
+                    /> : <p className="w-full p-2 border rounded bg-neutral-blue overflow-x-scroll">{enemyPubky || 'heeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee'}</p>}
                 </label>
 
                 {/* Size field */}
                 <label className="mb-2 flex flex-col">
-                    Size: (5-20)
-                    <div
+                    {lobbyMode === LobbyMode.CREATE ? 'Size: (5-20)' : 'Size:'}
+                    {lobbyMode === LobbyMode.CREATE ? <div
                         className="flex justify-between w-full mt-2 p-2 border rounded bg-neutral-blue"
                     >
                         <button disabled={boardSize === 5} onClick={() => { setBoardSize(boardSize - 1) }}>
@@ -292,7 +293,7 @@ export function Lobby({ sharedStates }: { sharedStates: ReturnType<typeof useSha
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
                             </svg>
                         </button>
-                    </div>
+                    </div> : <p>{boardSize}</p>}
                 </label>
 
                 {/* Ships input */}
