@@ -93,7 +93,7 @@ const MainMenu = ({ selectGame }: { selectGame: (key: string) => void }) => {
             Dive into the Action with Our Exciting Arcade Games!
           </p>
           <div className="w-full flex justify-between mt-12">
-            <div className="w-full bg-[url('./assets/battleshipBg.png')] bg-cover bg-center w-[524px] h-[300px] flex items-center justify-center">
+            <div className="bg-[url('./assets/battleshipBg.png')] bg-cover bg-center w-[524px] h-[300px] flex items-center justify-center">
               <div className="cursor-pointer flex flex-col justify-center items-center w-[324px] h-48 rounded-[11px] border border-white border-opacity-60 backdrop-blur-[14px]">
                 <img src={batthleships} />
                 <button
@@ -104,7 +104,7 @@ const MainMenu = ({ selectGame }: { selectGame: (key: string) => void }) => {
                 </button>
               </div>
             </div>
-            <div className="w-full bg-[url('./assets/ticTacToeBg.png')] bg-cover bg-center w-[524px] h-[300px] flex items-center justify-center">
+            <div className="bg-[url('./assets/ticTacToeBg.png')] bg-cover bg-center w-[524px] h-[300px] flex items-center justify-center">
               <div className="cursor-pointer flex flex-col justify-center items-center w-[324px] h-48 rounded-[11px] border border-white border-opacity-60 backdrop-blur-[14px]">
                 <img src={TicTacToe} />
                 <button
