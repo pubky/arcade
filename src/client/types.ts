@@ -11,6 +11,6 @@ export interface TClientContext {
     z32_encode: (buffer: Buffer) => Promise<string>;
     z32_decode: (value: string) => Promise<Buffer>;
     hash: (message: string) => Promise<string>;
-    sign: (message: string) => Promise<ArrayBuffer>;
-    verify: (publicKey: Uint8Array, signature: ArrayBuffer, message: string) => Promise<boolean>;
+    sign: (message: string) => Promise<Buffer>;
+    verify: (publicKey: string, signature: string, message: string) => Promise<boolean>;
 }

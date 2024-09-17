@@ -44,7 +44,8 @@ export function ClientWrapper({ children }: { children: React.ReactNode }) {
     if (pubky !== null) {
       const session = await client.session(PublicKey.from(pubky))
       if (session) {
-        return
+        await signOut();
+        await signUp();
       }
     }
     const keypair = Keypair.random();
@@ -123,7 +124,7 @@ export function ClientWrapper({ children }: { children: React.ReactNode }) {
     return Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
   }
 
-  const sign = async (message: string): Promise<ArrayBuffer> => {
+  const sign = async (message: string): Promise<Buffer> => {
     const data = Buffer.from(message);
     const decodedSecret = await z32_decode(secret as string);
     const decodedPublicKey = await z32_decode(pubky as string);
@@ -136,22 +137,25 @@ export function ClientWrapper({ children }: { children: React.ReactNode }) {
     signingKey.set(decodedSecret, 0);
     signingKey.set(decodedPublicKey, 32);
 
-    console.log('signing', { secret, decodedSecret, signingKey })
     // eslint-disable-next-line
-    const signature = new Uint8Array(signer.crypto_sign_BYTES);
+    const signature = Buffer.alloc(signer.crypto_sign_BYTES);
 
     // eslint-disable-next-line
     signer.crypto_sign_detached(signature, data, signingKey);
+
     return signature
   }
 
-  const verify = async (publicKey: Uint8Array, signature: ArrayBuffer, message: string): Promise<boolean> => {
+  const verify = async (publicKey: string, signature: string, message: string): Promise<boolean> => {
     const data = Buffer.from(message);
+    const decodedPublicKey = await z32_decode(publicKey);
+    const decodedSignature = await z32_decode(signature);
+
     // eslint-disable-next-line
     const signer = await sod();
 
     // eslint-disable-next-line
-    return signer.crypto_sign_verify_detached(signature, data, publicKey);
+    return signer.crypto_sign_verify_detached(decodedSignature, data, decodedPublicKey);
   }
 
   const z32_encode = async (buffer: Buffer): Promise<string> => {

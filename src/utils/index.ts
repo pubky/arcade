@@ -6,5 +6,7 @@ export const Utils = {
     conversion: {
         base64ToUint8Array,
         uint8ArrayToBase64,
-    }
+    },
 }
+
+export * from './useInterval';

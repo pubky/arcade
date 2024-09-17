@@ -39,7 +39,7 @@ export function Lobby({ sharedStates }: { sharedStates: ReturnType<typeof useSha
     const { client, states, setStates } = sharedStates;
     const { board, boardSize, availableShipSizes, uri, lobbyMode, enemyPubky, placedShips, id } = states;
     const { setBoardHash, setId, setNonce, setGameState, setEnemyPubky,
-        setBoardSize, setEnemyBoardHash, setAvailableShipSizes, setPlacedShips, setBoard } = setStates;
+        setBoardSize, setEnemyBoardHash, setAvailableShipSizes, setPlacedShips, setBoard, setMyLastSig, setEnemyLastsig } = setStates;
 
     const [selectedShipIndex, setSelectedShipIndex] = useState<number | null>(null);
     const [dropDownSelectedShip, setDropDownSelectedShip] = useState<string>('2');
@@ -64,7 +64,10 @@ export function Lobby({ sharedStates }: { sharedStates: ReturnType<typeof useSha
             client.put({
                 path: `matches/${id}/init`,
                 payload: { boardHash, size: String(boardSize), ships: String(availableShipSizes) }
-            }).then((() => {
+            }).then(((value) => {
+                if (value === null) return
+                const { sig } = value
+                setMyLastSig(sig);
                 setBoardHash(boardHash)
                 setNonce(nonce)
                 setGameState(GameState.MATCH);
@@ -83,10 +86,12 @@ export function Lobby({ sharedStates }: { sharedStates: ReturnType<typeof useSha
         const enemyPk = parts[2]
         setEnemyPubky(enemyPk)
 
-        client.get(`matches/${id}/init`, enemyPk).then((enemyInit => {
+        client.get(`matches/${id}/init`, enemyPk, '').then((enemyInit => {
             if (enemyInit === null) return;
+            const { sig } = enemyInit;
             setBoardSize(Number(enemyInit.data.size))
             setEnemyBoardHash(enemyInit.data.boardHash)
+            setEnemyLastsig(sig);
             setAvailableShipSizes((enemyInit.data.ships).split(',').map(i => Number(i)))
 
             client.join(JSON.stringify(board)).then((value => {
@@ -100,7 +105,10 @@ export function Lobby({ sharedStates }: { sharedStates: ReturnType<typeof useSha
                     path: `matches/${id}/join`,
                     payload: { boardHash: value.boardHash || '' },
                     preSig: enemyInit.sig
-                }).then((() => {
+                }).then(((value) => {
+                    if (value === null) return;
+                    const { sig } = value;
+                    setMyLastSig(sig);
                     setGameState(GameState.MATCH)
                 })).catch((error => {
                     console.log('error', error)

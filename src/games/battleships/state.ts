@@ -29,6 +29,9 @@ export const useSharedState = () => {
     // a tuple in this format [ships I have destroyed, ships the enemy has destroyed]
     const [score, setScore] = useState<[number, number]>([0, 0]);
 
+    const [enemyLastSig, setEnemyLastsig] = useState<string | null>(null);
+    const [myLastSig, setMyLastSig] = useState<string | null>(null);
+
     const context = useContext(ClientContext);
     const client = new BattleshipsClient(context);
 
@@ -50,6 +53,8 @@ export const useSharedState = () => {
             enemyBoard,
             enemyBoardHash,
             score,
+            myLastSig,
+            enemyLastSig,
         },
         setStates: {
             setGameState,
@@ -66,6 +71,8 @@ export const useSharedState = () => {
             setEnemyBoard,
             setEnemyBoardHash,
             setScore,
+            setMyLastSig,
+            setEnemyLastsig
         }
     }
 }

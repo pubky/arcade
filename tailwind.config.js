@@ -14,6 +14,8 @@ export default {
       'secondary-blue': '#1C1C43',
       'action-blue': '#213CE2',
       'neutral-blue': '#141439',
+      'primary-green': '#35AF92',
+      'primary-gray': '#222237',
     }
   },
   plugins: [],
