@@ -29,7 +29,7 @@ export function ShipSelectDropDown({ onSelect, options, selectedValue }: { onSel
                     {options.map(option => (
                         <div
                             key={option}
-                            className="flex justify-between items-center px-2 py-1 cursor-pointer"
+                            className="flex flex-wrap justify-between items-center px-2 py-1 cursor-pointer"
                             onClick={() => { setIsOpen(false); onSelect(option); }}
                         >
                             <p className="leading-loose">{`Ship ${option}`}</p>
