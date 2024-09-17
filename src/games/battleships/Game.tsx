@@ -232,7 +232,7 @@ export function Game({ sharedStates }: { sharedStates: ReturnType<typeof useShar
                 </div>
                 <button
                     className="text-2xl font-bold bg-blue-200 p-0.5"
-                    onClick={() => { navigator.clipboard.writeText(uri || '').then((() => { })).catch((() => { })) }}
+                    onClick={() => { navigator.clipboard.writeText(uri as string).catch((() => { })) }}
                 >
                     {uri?.slice(0, 10)}...
                 </button>

@@ -10,13 +10,11 @@ export class BattleshipsClient {
   async start(board: string) {
     try {
       const nonce = await this.context.z32_encode(await this.context.randomBytes());
-      const id = await this.context.z32_encode(await this.context.randomBytes(8));
 
       const initialBoardHash = await this.context.hash(board);
       const currentBoardHash = await this.context.hash(initialBoardHash + "/" + nonce);
 
       return {
-        id,
         nonce,
         boardHash: currentBoardHash,
       }

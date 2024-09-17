@@ -5,7 +5,7 @@ import BattleshipsLogo from './assets/battleships.png';
 import PubkyArcadeLogo from './assets/pubky-arcade.png';
 
 export function MainMenu({ sharedStates }: { sharedStates: ReturnType<typeof useSharedState> }) {
-    const { states, setStates } = sharedStates;
+    const { states, setStates, context } = sharedStates;
     const { setUri, setGameState, setLobbyMode, setId, setEnemyPubky } = setStates;
     const { uri } = states;
 
@@ -19,6 +19,17 @@ export function MainMenu({ sharedStates }: { sharedStates: ReturnType<typeof use
             const enemyPk = parts[2]
             setId(id)
             setEnemyPubky(enemyPk)
+        } else {
+            context.randomBytes(8).then((randomBytes => {
+                context.z32_encode(randomBytes).then((id => {
+                    setId(id);
+                    setUri(`pubky://${context.pubky}/pub/battleships.app/matches/${id}`);
+                })).catch(error => {
+                    console.log('error encoding a new game id', error)
+                });
+            })).catch(error => {
+                console.log('error creating a new game id', error)
+            });
         }
     };
 
@@ -41,25 +52,25 @@ export function MainMenu({ sharedStates }: { sharedStates: ReturnType<typeof use
                 PLAY GAME
             </button>
             <p className="text-white opacity-60"> Or </p>
-            <form onSubmit={() => startMatch(LobbyMode.JOIN)} className='w-full mt-2 gap-2 flex flex-col items-center justify-center'>
+            <div className='w-full mt-2 gap-2 flex flex-col items-center justify-center'>
                 <input
                     type="text"
                     id="join-url"
                     placeholder='Enter match URI'
-                    onChange={(e) => {
+                    onBlur={(e) => {
                         setUri(e.target.value);
                     }}
-                    value={uri || ''}
+                    defaultValue={uri || ''}
                     className="w-full p-2 border rounded" />
                 <button
-                    type='submit'
+                    onClick={() => { startMatch(LobbyMode.JOIN); }}
                     disabled={(!uri || uri?.length === 0)}
                     className={`m-2 px-6 py-3 rounded-full text-white font-semibold shadow-md
                         ${(!uri || uri?.length === 0) ? 'bg-secondary-blue' : 'bg-primary-pink hover:opacity-80 active:opacity-40'}`}
                 >
                     JOIN GAME
                 </button>
-            </form>
+            </div>
         </div>
     );
 }
