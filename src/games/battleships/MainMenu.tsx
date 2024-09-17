@@ -36,7 +36,7 @@ export function MainMenu({ sharedStates }: { sharedStates: ReturnType<typeof use
             </div>
             <button
                 onClick={() => startMatch(LobbyMode.CREATE)}
-                className="m-2 px-6 py-3 bg-primary-pink text-white font-semibold rounded-full shadow-md hover:opacity-80"
+                className="m-2 px-6 py-3 bg-primary-pink text-white font-semibold rounded-full shadow-md hover:opacity-80 active:opacity-40"
             >
                 PLAY GAME
             </button>
@@ -54,8 +54,8 @@ export function MainMenu({ sharedStates }: { sharedStates: ReturnType<typeof use
                 <button
                     type='submit'
                     disabled={(!uri || uri?.length === 0)}
-                    className={`m-2 px-6 py-3 rounded-full text-white font-semibold shadow-md 
-                        ${(!uri || uri?.length === 0) ? 'bg-secondary-blue' : 'bg-primary-pink hover:opacity-80'}`}
+                    className={`m-2 px-6 py-3 rounded-full text-white font-semibold shadow-md
+                        ${(!uri || uri?.length === 0) ? 'bg-secondary-blue' : 'bg-primary-pink hover:opacity-80 active:opacity-40'}`}
                 >
                     JOIN GAME
                 </button>

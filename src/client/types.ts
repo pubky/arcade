@@ -1,5 +1,5 @@
 export interface TClientContext {
-    secret: Uint8Array | null;
+    secret: string | null;
     pubky: string | null;
     homeserverURL: string | null;
     signUp: () => Promise<void>;

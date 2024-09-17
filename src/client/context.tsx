@@ -14,10 +14,23 @@ import { Utils } from '../utils';
 
 import { client, Homeserver } from './setup';
 
+// @ts-ignore
+let sodium
+const sod = async () => {
+  // @ts-ignore
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+  if (sodium) return sodium
+  // @ts-ignore
+  // eslint-disable-next-line
+  sodium = await import('sodium-javascript').then(sod => sod);
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+  return sodium
+}
+
 export const ClientContext = createContext<TClientContext>({} as TClientContext);
 
 export function ClientWrapper({ children }: { children: React.ReactNode }) {
-  const [secret, setSecret] = useState<Uint8Array | null>(
+  const [secret, setSecret] = useState<string | null>(
     Utils.storage.get('secret')
   );
   const [pubky, setPubky] = useState<string | null>(
@@ -41,10 +54,11 @@ export function ClientWrapper({ children }: { children: React.ReactNode }) {
 
     await client.signup(keypair, Homeserver);
 
-    Utils.storage.set('secret', secretKey);
+    const encodedSecret = await z32_encode(Buffer.from(secretKey.buffer));
+    Utils.storage.set('secret', encodedSecret);
     Utils.storage.set('pubky', newPubky);
     Utils.storage.set('homeserverURL', homeserverURL);
-    setSecret(secretKey);
+    setSecret(encodedSecret);
     setPubky(newPubky)
     setHomeserverURL(homeserverURL);
   };
@@ -53,7 +67,8 @@ export function ClientWrapper({ children }: { children: React.ReactNode }) {
     if (secret === null) {
       return
     }
-    const keypair = Keypair.fromSecretKey(secret);
+    const decodedSecret = await z32_decode(secret);
+    const keypair = Keypair.fromSecretKey(decodedSecret);
     await client.signout(keypair.publicKey());
 
     Utils.storage.remove('pubky');
@@ -93,13 +108,11 @@ export function ClientWrapper({ children }: { children: React.ReactNode }) {
 
 
   const randomBytes = async (n: number = 32): Promise<Buffer> => {
-    // @ts-ignore
     // eslint-disable-next-line
-    const sod = await import('sodium-javascript');
-
+    const signer = await sod();
     const buf = Buffer.alloc(n)
     // eslint-disable-next-line
-    sod.randombytes_buf(buf)
+    signer.randombytes_buf(buf)
     return buf
   }
 
@@ -111,48 +124,34 @@ export function ClientWrapper({ children }: { children: React.ReactNode }) {
   }
 
   const sign = async (message: string): Promise<ArrayBuffer> => {
-    const encoder = new TextEncoder();
-    const data = encoder.encode(message);
-    const cryptoKey = await crypto.subtle.importKey(
-      'pkcs8',
-      secret as Uint8Array,
-      {
-        name: 'Ed25519'
-      },
-      false,
-      ['sign']
-    );
-    return await crypto.subtle.sign(
-      {
-        name: "ECDSA",
-        hash: { name: "SHA-256" },
-      },
-      cryptoKey,
-      data
-    );
+    const data = Buffer.from(message);
+    const decodedSecret = await z32_decode(secret as string);
+    const decodedPublicKey = await z32_decode(pubky as string);
+
+    // eslint-disable-next-line
+    const signer = await sod();
+
+    // eslint-disable-next-line
+    const signingKey = new Uint8Array(signer.crypto_sign_SECRETKEYBYTES);
+    signingKey.set(decodedSecret, 0);
+    signingKey.set(decodedPublicKey, 32);
+
+    console.log('signing', { secret, decodedSecret, signingKey })
+    // eslint-disable-next-line
+    const signature = new Uint8Array(signer.crypto_sign_BYTES);
+
+    // eslint-disable-next-line
+    signer.crypto_sign_detached(signature, data, signingKey);
+    return signature
   }
 
   const verify = async (publicKey: Uint8Array, signature: ArrayBuffer, message: string): Promise<boolean> => {
-    const encoder = new TextEncoder();
-    const data = encoder.encode(message);
-    const cryptoKey = await crypto.subtle.importKey(
-      'spki',
-      publicKey,
-      {
-        name: 'Ed25519'
-      },
-      false,
-      ['verify']
-    );
-    return await crypto.subtle.verify(
-      {
-        name: "ECDSA",
-        hash: { name: "SHA-256" },
-      },
-      cryptoKey,
-      signature,
-      data
-    );
+    const data = Buffer.from(message);
+    // eslint-disable-next-line
+    const signer = await sod();
+
+    // eslint-disable-next-line
+    return signer.crypto_sign_verify_detached(signature, data, publicKey);
   }
 
   const z32_encode = async (buffer: Buffer): Promise<string> => {
@@ -168,7 +167,7 @@ export function ClientWrapper({ children }: { children: React.ReactNode }) {
     // eslint-disable-next-line
     const z32 = await import('z32');
     // eslint-disable-next-line
-    return z32.decode(value);
+    return Buffer.from(z32.decode(value));
   }
 
   return (

@@ -49,7 +49,8 @@ export class BattleshipsClient {
       const getSig = async (payload: Record<string, string>, preSig = '') => {
         const payloadHash = await this.context.hash(JSON.stringify(payload));
         const finalHash = await this.context.hash(payloadHash + preSig);
-        return this.context.sign(finalHash);
+        const result = await this.context.sign(finalHash);
+        return this.context.z32_encode(Buffer.from(new Uint8Array(result)));
       }
 
       const input = {
@@ -64,9 +65,9 @@ export class BattleshipsClient {
     }
   };
 
-  async get(path: string, publicKey: Uint8Array) {
+  async get(path: string, publicKey: string) {
     try {
-      const url = `pubky://${await this.context.z32_encode(Buffer.from(publicKey))}/pub/battleships.app/`;
+      const url = `pubky://${publicKey}/pub/battleships.app/`;
       const result = await this.context.client_get(url + path);
 
       if (!result) {
@@ -78,8 +79,9 @@ export class BattleshipsClient {
 
       const encoder = new TextEncoder();
       const signatureBuffer = encoder.encode(sig).buffer;
+      const pubkyArray = encoder.encode(publicKey)
 
-      const verify = await this.context.verify(publicKey, signatureBuffer, JSON.stringify(data))
+      const verify = await this.context.verify(pubkyArray, signatureBuffer, JSON.stringify(data))
 
       if (!verify)
         throw new Error(`failed to verify the signature`)

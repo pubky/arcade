@@ -48,7 +48,7 @@ export function Game({ sharedStates }: { sharedStates: ReturnType<typeof useShar
     }
 
     const waitForOtherPlayerJoin = () => {
-        client.get(`matches/${id}/join`, new TextEncoder().encode(enemyPubky as string)).then(value => {
+        client.get(`matches/${id}/join`, enemyPubky as string).then(value => {
             if (value === null) return
             setMatchState(MatchState.MOVE);
             setEnemyBoardHash(value.data.boardHash)
@@ -61,7 +61,7 @@ export function Game({ sharedStates }: { sharedStates: ReturnType<typeof useShar
     const waitForOtherPlayerMove = () => {
         const enemyState = getEnemyState(lastMove);
         const enemyTurnPath = getFilePath(enemyState, currentTurn);
-        client.get(`matches/${id}/${enemyTurnPath}`, new TextEncoder().encode(enemyPubky as string)).then(value => {
+        client.get(`matches/${id}/${enemyTurnPath}`, enemyPubky as string).then(value => {
             if (value === null) return
             setLastEnemysig(value.sig)
             handleEnemyMove(enemyState, value.data)

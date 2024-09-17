@@ -8,7 +8,6 @@ import { useSharedState } from "./state";
 
 const newShip = (input: { start: string, align: ShipAlignment, size: number, boardSize: number }): Ship => {
     const { align, size, start, boardSize } = input;
-    console.log('new ship', { ...input });
     const [startRow, startCol] = start.split('-').map(i => Number(i));
 
     let direction = 1;
@@ -21,8 +20,6 @@ const newShip = (input: { start: string, align: ShipAlignment, size: number, boa
         direction = -1
     }
 
-    console.log('new ship direction', { direction });
-
     const tiles = [start]
     for (let i = 1; i < size; i++) {
         const previous = tiles[i - 1];
@@ -31,7 +28,6 @@ const newShip = (input: { start: string, align: ShipAlignment, size: number, boa
         tiles.push(newKey.join('-'));
     }
 
-    console.log(tiles)
     return {
         align,
         tiles: direction === 1 ? tiles : tiles.reverse(),
@@ -89,7 +85,7 @@ export function Lobby({ sharedStates }: { sharedStates: ReturnType<typeof useSha
         const enemyPk = parts[2]
         setEnemyPubky(enemyPk)
 
-        client.get(`matches/${id}/init`, new TextEncoder().encode(enemyPk)).then((enemyInit => {
+        client.get(`matches/${id}/init`, enemyPk).then((enemyInit => {
             if (enemyInit === null) return;
             setBoardSize(Number(enemyInit.data.size))
             setEnemyBoardHash(enemyInit.data.boardHash)
@@ -208,9 +204,12 @@ export function Lobby({ sharedStates }: { sharedStates: ReturnType<typeof useSha
         setPlacedShips(newFleet);
     }
 
-    const randomizeFleetPlacement = () => {
-        let newFleet = placedShips;
-        const tempBoard = board;
+    const tryRandomizingFleet = (tryCount: number) => {
+        if (tryCount === 10) {
+            console.log('Tried 10 times but could not find a random position for ships');
+            return []
+        }
+        let newFleet = [...placedShips];
         for (const shipSize of remainingShips) {
             const row = Math.floor(Math.random() * boardSize);
             const col = Math.floor(Math.random() * boardSize);
@@ -220,13 +219,20 @@ export function Lobby({ sharedStates }: { sharedStates: ReturnType<typeof useSha
             newFleet = newFleet.concat(ship)
             const hasCollision = checkFleetCollision(newFleet)
             if (hasCollision) {
-                return randomizeFleetPlacement();
-            }
-            for (const tile of ship.tiles) {
-                tempBoard[tile] = Tile.SHIP;
+                return tryRandomizingFleet(tryCount + 1);
             }
         }
-        setBoard(tempBoard);
+        return newFleet
+    }
+
+    const randomizeFleetPlacement = () => {
+        const newFleet = tryRandomizingFleet(0);
+        for (const ship of newFleet) {
+            for (const tile of ship.tiles) {
+                board[tile] = Tile.SHIP;
+            }
+        }
+        setBoard(board);
         setPlacedShips(newFleet);
         setRemainingShips([]);
         setSelectedShipIndex(null);
@@ -244,13 +250,12 @@ export function Lobby({ sharedStates }: { sharedStates: ReturnType<typeof useSha
                         className="flex justify-between w-full mt-2 p-2 border rounded bg-neutral-blue"
                     >
                         <div className="flex overflow-hidden">
-                            <p className="overflow-hidden">
+                            <p className="overflow-hidden overflow-ellipsis">
                                 {uri}
                             </p>
-                            {uri ? <p>...</p> : <></>}
                         </div>
                         <div className="w-6 pt-1 px-1">
-                            <button>
+                            <button className="active:opacity-40 border rounded border-transparent hover:border-white">
                                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1" stroke="currentColor" className="size-5">
                                     <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 0 0 2.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 0 0-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 0 0 .75-.75 2.25 2.25 0 0 0-.1-.664m-5.8 0A2.251 2.251 0 0 1 13.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25ZM6.75 12h.008v.008H6.75V12Zm0 3h.008v.008H6.75V15Zm0 3h.008v.008H6.75V18Z" />
                                 </svg>
@@ -343,8 +348,10 @@ export function Lobby({ sharedStates }: { sharedStates: ReturnType<typeof useSha
                     <div className="flex gap-10 items-center">
                         <p className="font-bold text-xl">Your Fleet</p>
                         <button
-                            className="bg-neutral-blue px-4 py-1 rounded-full font-semibold"
+                            className={`bg-neutral-blue px-4 py-1 rounded-full font-semibold 
+                                ${remainingShips.length > 0 ? 'active:opacity-40' : ''}`}
                             onClick={() => { randomizeFleetPlacement(); }}
+                            disabled={remainingShips.length === 0}
                         >
                             RANDOMIZE
                         </button>
@@ -353,12 +360,12 @@ export function Lobby({ sharedStates }: { sharedStates: ReturnType<typeof useSha
                         {yourFleet.map((fleetShip, index) => (
                             <div className="w-fit box-border relative gap-1 flex-col" key={index}>
                                 <p>Ship {fleetShip.tiles.length}</p>
-                                <div className={`flex cursor-pointer border 
+                                <div className={`flex cursor-pointer border rounded
                                     ${index === selectedShipIndex ? '' : 'border-transparent'}
                                 `} onClick={() => setSelectedShipIndex(index === selectedShipIndex ? null : index)}>
                                     <ShipComponent ship={fleetShip} renderSize={8}></ShipComponent>
                                     <div className="absolute -end-4 bottom-0">
-                                        <button className="w-4" onClick={() => {
+                                        <button className="w-4 rounded border border-transparent hover:border-white active:opacity-40" onClick={() => {
                                             const newAvailableShipSizes = availableShipSizes.slice(0, index).concat(availableShipSizes.slice(index + 1))
                                             setAvailableShipSizes(newAvailableShipSizes);
                                             setRemainingShips(remainingShips.slice(0, remainingShips.length - 1));
@@ -377,7 +384,7 @@ export function Lobby({ sharedStates }: { sharedStates: ReturnType<typeof useSha
                     onClick={lobbyMode === LobbyMode.CREATE ? startMatch : joinMatch}
                     disabled={!readyToJoin()}
                     className={`m-2 px-6 py-3 rounded-full text-white font-semibold shadow-md 
-                        ${!readyToJoin() ? 'bg-secondary-blue' : 'bg-primary-pink hover:opacity-80'}`}
+                        ${!readyToJoin() ? 'bg-secondary-blue' : 'bg-primary-pink hover:opacity-80 active:opacity-40'}`}
                 >
                     {lobbyMode === LobbyMode.CREATE ? 'START' : 'JOIN'}
                 </button>
