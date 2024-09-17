@@ -12,6 +12,7 @@ export default {
       'primary-blue': '#030321',
       'primary-pink': '#D900C8',
       'secondary-blue': '#1C1C43',
+      'secondary-pink': '#73006A',
       'action-blue': '#213CE2',
       'neutral-blue': '#141439',
       'primary-green': '#35AF92',

@@ -10,6 +10,7 @@ const placeShot = (input: { hit: string, board: TBoard, ships: Ship[] }): ShotRe
     const tile = board[hit];
 
     if (tile === undefined || tile !== Tile.SHIP) {
+        board[hit] = Tile.MISS;
         return ShotResult.MISS
     }
 
@@ -24,11 +25,12 @@ export function Game({ sharedStates }: { sharedStates: ReturnType<typeof useShar
     const { states, client, setStates } = sharedStates;
     const { lobbyMode, id, enemyPubky, board, boardSize, enemyBoard, uri, score, placedShips, availableShipSizes,
         myLastSig, enemyLastSig } = states;
-    const { setEnemyBoardHash, setBoard, setScore, setMyLastSig, setEnemyLastsig } = setStates;
+    const { setEnemyBoardHash, setBoard, setScore, setMyLastSig, setEnemyLastsig, setEnemyBoard } = setStates;
 
     const [matchState, setMatchState] = useState<MatchState>(lobbyMode === LobbyMode.CREATE ? MatchState.WARM_UP : MatchState.WAIT);
     const [currentTurn, setCurrentTurn] = useState<number>(1);
     const [lastMove, setLastMove] = useState<MatchState | null>(null);
+    const [pendingTile, setPendingTile] = useState<string | null>(null);
 
     const getStateTitle = (state: MatchState, lastMove: MatchState | null) => {
         switch (state) {
@@ -131,8 +133,9 @@ export function Game({ sharedStates }: { sharedStates: ReturnType<typeof useShar
         const payload = {
             move: key
         }
-
         enemyBoard[key] = Tile.PENDING;
+        setPendingTile(key);
+        setEnemyBoard(enemyBoard);
         client.put({ path: `matches/${id}/${getFilePath(MatchState.MOVE, currentTurn)}`, payload, preSig: enemyLastSig || undefined }).then((value => {
             if (value === null) {
                 console.log('failed to attack enemy');
@@ -178,17 +181,17 @@ export function Game({ sharedStates }: { sharedStates: ReturnType<typeof useShar
 
     const handleEnemyRes = (data: Record<string, string>, sig: string) => {
         const { res } = data
-        console.log(res);
 
         if (res as ShotResult === ShotResult.MISS) {
-            enemyBoard[lastMove as string] = Tile.MISS;
+            enemyBoard[pendingTile as string] = Tile.MISS;
         }
         else {
-            enemyBoard[lastMove as string] = Tile.HIT;
+            enemyBoard[pendingTile as string] = Tile.HIT;
             if (res as ShotResult === ShotResult.SUNK) {
                 setScore([score[0] + 1, score[1]]);
             }
         }
+        setEnemyBoard(enemyBoard);
         sendEnemyConfirmation(sig);
     }
 

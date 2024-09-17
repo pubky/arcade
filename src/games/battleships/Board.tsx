@@ -43,7 +43,8 @@ export function Board(input: {
                 case Tile.WATER: return 'bg-secondary-blue';
                 case Tile.SHIP: return 'bg-secondary-blue opacity-50';
                 case Tile.MISS: return 'bg-black';
-                case Tile.HIT: return 'bg-primary-pink';
+                case Tile.HIT: return 'bg-secondary-pink';
+                case Tile.PENDING: return 'bg-yellow';
                 default: return 'bg-secondary-blue'; // Water
             }
         };
