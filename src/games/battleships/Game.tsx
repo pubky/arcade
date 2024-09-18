@@ -70,9 +70,7 @@ export function Game({ sharedStates }: { sharedStates: ReturnType<typeof useShar
     const waitForOtherPlayerMove = () => {
         const enemyState = getEnemyState(lastMove);
         const enemyTurnPath = getFilePath(enemyState, currentTurn);
-        console.log('in waitForOtherPlayerMove', { enemyState, enemyTurnPath });
         client.get(`matches/${id}/${enemyTurnPath}`, enemyPubky as string, myLastSig as string).then(value => {
-            console.log('in .get', { id, enemyTurnPath, value });
             if (value === null) return
             setEnemyLastsig(value.sig)
             handleEnemyMove(enemyState, value.data, value.sig)
@@ -82,7 +80,6 @@ export function Game({ sharedStates }: { sharedStates: ReturnType<typeof useShar
     }
 
     const handleEnemyMove = (enemyState: MatchState, data: Record<string, string>, sig: string) => {
-        console.log('in handleEnemyMove', { enemyState });
         switch (enemyState) {
             case MatchState.MOVE:
                 // setMatchState(MatchState.RES);
@@ -103,8 +100,6 @@ export function Game({ sharedStates }: { sharedStates: ReturnType<typeof useShar
     const handleEnemyAttack = (data: Record<string, string>, sig: string) => {
         const { move } = data
 
-        console.log('in handleEnemyAttack', { move });
-
         const result = placeShot({ hit: move, board, ships: placedShips });
 
         // send res
@@ -113,7 +108,6 @@ export function Game({ sharedStates }: { sharedStates: ReturnType<typeof useShar
                 res: String(result)
             }, preSig: sig
         }).then((value => {
-            console.log('in handleEnemyAttack sent a res', { value });
             if (value === null) {
                 console.log('failed to send the result of enemy move.');
                 return

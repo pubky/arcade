@@ -43,25 +43,26 @@ export function ClientWrapper({ children }: { children: React.ReactNode }) {
   const signUp = async (): Promise<void> => {
     if (pubky !== null) {
       const session = await client.session(PublicKey.from(pubky))
-      if (session) {
+      if (!session) {
         await signOut();
-        await signUp();
+        return await signUp();
       }
+      return;
     }
     const keypair = Keypair.random();
     const secretKey = keypair.secretKey();
     const newPubky = keypair.publicKey().z32();
-    const homeserverURL = `pubky://${newPubky}/pub/`;
+    const newHomeserverURL = `pubky://${newPubky}/pub/`;
 
     await client.signup(keypair, Homeserver);
 
     const encodedSecret = await z32_encode(Buffer.from(secretKey.buffer));
     Utils.storage.set('secret', encodedSecret);
     Utils.storage.set('pubky', newPubky);
-    Utils.storage.set('homeserverURL', homeserverURL);
+    Utils.storage.set('homeserverURL', newHomeserverURL);
     setSecret(encodedSecret);
     setPubky(newPubky)
-    setHomeserverURL(homeserverURL);
+    setHomeserverURL(newHomeserverURL);
   };
 
   const signOut = async (): Promise<void> => {

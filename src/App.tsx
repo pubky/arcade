@@ -45,14 +45,12 @@ const GamePage = ({
 
   return (
     <div className="left-0 top-0">
-      <ClientWrapper>
-        <Header exitToMain={exitToMain} game={game}></Header>
-        <div className="fixed w-screen h-full left-0 top-12">
-          <div className="overflow-y-scroll h-full">
-            <GameComponent />
-          </div>
+      <Header exitToMain={exitToMain} game={game}></Header>
+      <div className="fixed w-screen h-full left-0 top-12">
+        <div className="overflow-y-scroll h-full">
+          <GameComponent />
         </div>
-      </ClientWrapper>
+      </div>
     </div>
   );
 };
