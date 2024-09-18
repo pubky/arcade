@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { GameState, LobbyMode, Ship, ShipAlignment, Tile } from ".";
+import { GameState, LobbyMode, Ship, SHIP_NAMES, ShipAlignment, Tile } from ".";
 import { useInterval } from "../../utils";
 import { Board } from "./Board";
 import { ShipComponent } from "./Ship";
@@ -338,7 +338,7 @@ export function Lobby({ sharedStates }: { sharedStates: ReturnType<typeof useSha
                                 setDropDownSelectedShip(option);
                                 setRemainingShips(remainingShips.concat(Number(option)));
                             }}
-                            options={['2', '3', '4', '5', '6']}
+                            options={Object.keys(SHIP_NAMES)}
                         />
                     </div>
                 </label>)}
@@ -419,7 +419,7 @@ export function Lobby({ sharedStates }: { sharedStates: ReturnType<typeof useSha
                     <div className="flex flex-wrap shrink-0 gap-10">
                         {yourFleet.map((fleetShip, index) => (
                             <div className="w-fit box-border relative gap-1 flex-col" key={index}>
-                                <p>Ship {fleetShip.tiles.length}</p>
+                                <p className="text-center">{SHIP_NAMES[fleetShip.tiles.length]}</p>
                                 <div className={`flex cursor-pointer border rounded
                                     ${index === selectedShipIndex ? '' : 'border-transparent'}
                                 `} onClick={() => setSelectedShipIndex(index === selectedShipIndex ? null : index)}>

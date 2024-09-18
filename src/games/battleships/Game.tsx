@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { LobbyMode, MatchState, Ship, ShotResult, TBoard, Tile } from ".";
+import { LobbyMode, MatchState, Ship, SHIP_NAMES, ShotResult, TBoard, Tile } from ".";
 import { useInterval } from "../../utils";
 import { Board } from "./Board";
 import { ShipComponent } from "./Ship";
@@ -270,7 +270,7 @@ export function Game({ sharedStates }: { sharedStates: ReturnType<typeof useShar
                                 <div className="flex flex-wrap shrink-0 gap-10">
                                     {placedShips.map((fleetShip, index) => (
                                         <div className="w-fit box-border relative gap-1 flex-col" key={index}>
-                                            <p>Ship {fleetShip.tiles.length}</p>
+                                            <p className="">{SHIP_NAMES[fleetShip.tiles.length]}</p>
                                             <div className="flex cursor-pointer border border-transparent rounded">
                                                 <ShipComponent ship={fleetShip} renderSize={8}></ShipComponent>
                                             </div>
@@ -308,7 +308,7 @@ export function Game({ sharedStates }: { sharedStates: ReturnType<typeof useShar
                                         const ship: Ship = { align: 'horizontal', hits: [], tiles: new Array<string>(shipSize).fill('1-1') }
                                         return (
                                             <div className="w-fit box-border relative gap-1 flex-col" key={index}>
-                                                <p>Ship {ship.tiles.length}</p>
+                                                <p>{SHIP_NAMES[ship.tiles.length]}</p>
                                                 <div className="flex cursor-pointer border border-transparent rounded">
                                                     <ShipComponent ship={ship} renderSize={8}></ShipComponent>
                                                 </div>

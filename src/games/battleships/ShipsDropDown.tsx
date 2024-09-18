@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { SHIP_NAMES } from ".";
 import { ShipComponent } from "./Ship";
 
 export function ShipSelectDropDown({ onSelect, options, selectedValue }: { onSelect: (option: string) => void, options: string[], selectedValue: string }) {
@@ -11,7 +12,7 @@ export function ShipSelectDropDown({ onSelect, options, selectedValue }: { onSel
             >
                 <div className="flex flex-wrap justify-between items-center w-11/12">
                     <p className="leading-loose text-sm font-semibold">
-                        {selectedValue ? `Ship ${selectedValue}` : 'Select a ship size'}
+                        {selectedValue ? SHIP_NAMES[Number(selectedValue)] : 'Select a ship size'}
                     </p>
                     {selectedValue && <ShipComponent renderSize={6} ship={{ align: 'horizontal', hits: [], tiles: Array<string>(Number(selectedValue)).fill('1-1') }}></ShipComponent>}
                 </div>
@@ -32,7 +33,7 @@ export function ShipSelectDropDown({ onSelect, options, selectedValue }: { onSel
                             className="flex flex-wrap justify-between items-center px-2 py-1 cursor-pointer"
                             onClick={() => { setIsOpen(false); onSelect(option); }}
                         >
-                            <p className="leading-loose">{`Ship ${option}`}</p>
+                            <p className="leading-loose">{SHIP_NAMES[Number(option)]}</p>
                             <ShipComponent renderSize={4} ship={{ align: 'horizontal', hits: [], tiles: Array<string>(Number(option)).fill('1-1') }}></ShipComponent>
                         </div>
                     ))}
