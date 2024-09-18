@@ -164,14 +164,14 @@ const Header = ({
   const context = useContext(ClientContext);
 
   return (
-    <div className='fixed top-0 left-0 z-10 w-screen h-12 bg-primary-blue'>
-      <div className='flex justify-between items-center border-white border-opacity-60 border-b'>
+    <div className='fixed flex top-0 left-0 z-10 w-screen h-12 bg-primary-blue'>
+      <div className='flex w-full justify-between items-center border-white border-opacity-60 border-b'>
         <h2 className='font-bold m-2 text-white leading-loose text-opacity-80'>{game.name}</h2>
         <div className='flex w-1/2 gap-2 items-center justify-between text-white border px-2 py-1 rounded-full'>
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1" stroke="currentColor" className="size-5">
             <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 5.25a3 3 0 0 1 3 3m3 0a6 6 0 0 1-7.029 5.912c-.563-.097-1.159.026-1.563.43L10.5 17.25H8.25v2.25H6v2.25H2.25v-2.818c0-.597.237-1.17.659-1.591l6.499-6.499c.404-.404.527-1 .43-1.563A6 6 0 1 1 21.75 8.25Z" />
           </svg>
-          <p className='font-bold w-3/4 overflow-hidden overflow-ellipsis'>{context.pubky}</p>
+          <p className='font-bold text-center w-3/4 overflow-hidden overflow-ellipsis'>{context.pubky}</p>
           <button className='flex w-8 px-1 rounded-full py-0.5 border border-transparent hover:border-white active:opacity-40'
             onClick={() => { navigator.clipboard.writeText(context.pubky as string).catch((error) => { console.log(error) }) }}
           >
