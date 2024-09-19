@@ -84,8 +84,8 @@ export function Board(input: {
                         ships.map((ship, index) => (
                             <div
                                 key={index}
-                                className={`relative flex items-center w-full pointer-events-auto`}
-                                onClick={() => { setSelectedShip(selectedShip === index ? null : index); }}
+                                className={`relative flex items-center w-full cursor-pointer`}
+                                onClick={onCellClick ? () => { setSelectedShip(selectedShip === index ? null : index); } : undefined}
                                 style={{
                                     gridRow: Number(ship.tiles[0].split('-')[0]) + 1,
                                     gridColumn: Number(ship.tiles[0].split('-')[1]) + 1,

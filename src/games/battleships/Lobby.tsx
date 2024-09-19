@@ -229,6 +229,17 @@ export function Lobby({ sharedStates }: { sharedStates: ReturnType<typeof useSha
         setPlacedShips(newFleet);
     }
 
+    const clearBoard = () => {
+        for (const ship of placedShips) {
+            for (const tile of ship.tiles) {
+                board[tile] = Tile.WATER;
+            }
+        }
+        setBoard(board);
+        setPlacedShips([]);
+        setRemainingShips(availableShipSizes);
+    }
+
     const tryRandomizingFleet = (tryCount: number) => {
         if (tryCount === 10) {
             console.log('Tried 10 times but could not find a random position for ships');
@@ -405,7 +416,7 @@ export function Lobby({ sharedStates }: { sharedStates: ReturnType<typeof useSha
 
                 {/* Your Fleet */}
                 <div className="flex flex-col w-5/6 pt-10">
-                    <div className="flex gap-10 items-center">
+                    <div className="flex flex-wrap gap-5 lg:gap-10 mb-2 items-center">
                         <p className="font-bold text-xl">Your Fleet</p>
                         <button
                             className={`bg-neutral-blue px-4 py-1 rounded-full font-semibold 
@@ -414,6 +425,14 @@ export function Lobby({ sharedStates }: { sharedStates: ReturnType<typeof useSha
                             disabled={remainingShips.length === 0}
                         >
                             RANDOMIZE
+                        </button>
+                        <button
+                            className={`bg-neutral-blue px-4 py-1 rounded-full font-semibold 
+                                ${placedShips.length > 0 ? 'active:opacity-40' : ''}`}
+                            onClick={() => { clearBoard(); }}
+                            disabled={placedShips.length === 0}
+                        >
+                            CLEAR BOARD
                         </button>
                     </div>
                     <div className="flex flex-wrap shrink-0 gap-10">
@@ -443,7 +462,7 @@ export function Lobby({ sharedStates }: { sharedStates: ReturnType<typeof useSha
                 <button
                     onClick={lobbyMode === LobbyMode.CREATE ? startMatch : joinMatch}
                     disabled={!readyToJoin()}
-                    className={`m-2 px-6 py-3 rounded-full text-white font-semibold shadow-md 
+                    className={`m-4 px-6 py-3 rounded-full text-white font-semibold shadow-md 
                         ${!readyToJoin() ? 'bg-secondary-blue' : 'bg-primary-pink hover:opacity-80 active:opacity-40'}`}
                 >
                     {lobbyMode === LobbyMode.CREATE ? 'START' : 'JOIN'}
