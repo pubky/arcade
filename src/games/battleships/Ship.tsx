@@ -21,7 +21,6 @@ export function ShipTile({ image, isHit, renderSize }: { image: string; isHit: b
 export function ShipComponent({ ship, renderSize }: { ship: Ship, renderSize?: number }) {
     const { tiles, align, hits } = ship;
 
-
     return (<div className={`flex ${align === 'vertical' ? 'flex-col h-fit' : 'w-fit p-0.5'}`}>
         {
             tiles.map((tile, index) => {

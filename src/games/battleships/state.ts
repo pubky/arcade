@@ -19,8 +19,8 @@ export const useSharedState = () => {
     const [boardHash, setBoardHash] = useState<string | null>(null);
 
     // settings in lobby
-    const [boardSize, setBoardSize] = useState<number>(10);
-    const [availableShipSizes, setAvailableShipSizes] = useState<number[]>([2, 2, 3, 3]);
+    const [boardSize, setBoardSize] = useState<number>(8);
+    const [availableShipSizes, setAvailableShipSizes] = useState<number[]>([2, 3, 3, 4, 5]);
     const [placedShips, setPlacedShips] = useState<Ship[]>([]);
 
     const [enemyBoard, setEnemyBoard] = useState<TBoard>(newBoard());

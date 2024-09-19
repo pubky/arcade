@@ -1,7 +1,8 @@
 import { useState } from "react";
-import { LobbyMode, MatchState, Ship, ShotResult, TBoard, Tile } from ".";
+import { LobbyMode, MatchState, Ship, SHIP_NAMES, ShotResult, TBoard, Tile } from ".";
 import { useInterval } from "../../utils";
 import { Board } from "./Board";
+import { GameOver } from "./GameOver";
 import { ShipComponent } from "./Ship";
 import { useSharedState } from "./state";
 
@@ -31,6 +32,9 @@ export function Game({ sharedStates }: { sharedStates: ReturnType<typeof useShar
     const [currentTurn, setCurrentTurn] = useState<number>(1);
     const [lastMove, setLastMove] = useState<MatchState | null>(null);
     const [pendingTile, setPendingTile] = useState<string | null>(null);
+
+    const [gameOver, setGameOver] = useState<boolean>(false);
+    const [youWin, setYouWin] = useState<boolean>(false);
 
     const getStateTitle = (state: MatchState, lastMove: MatchState | null) => {
         switch (state) {
@@ -70,9 +74,7 @@ export function Game({ sharedStates }: { sharedStates: ReturnType<typeof useShar
     const waitForOtherPlayerMove = () => {
         const enemyState = getEnemyState(lastMove);
         const enemyTurnPath = getFilePath(enemyState, currentTurn);
-        console.log('in waitForOtherPlayerMove', { enemyState, enemyTurnPath });
         client.get(`matches/${id}/${enemyTurnPath}`, enemyPubky as string, myLastSig as string).then(value => {
-            console.log('in .get', { id, enemyTurnPath, value });
             if (value === null) return
             setEnemyLastsig(value.sig)
             handleEnemyMove(enemyState, value.data, value.sig)
@@ -82,7 +84,6 @@ export function Game({ sharedStates }: { sharedStates: ReturnType<typeof useShar
     }
 
     const handleEnemyMove = (enemyState: MatchState, data: Record<string, string>, sig: string) => {
-        console.log('in handleEnemyMove', { enemyState });
         switch (enemyState) {
             case MatchState.MOVE:
                 // setMatchState(MatchState.RES);
@@ -103,8 +104,6 @@ export function Game({ sharedStates }: { sharedStates: ReturnType<typeof useShar
     const handleEnemyAttack = (data: Record<string, string>, sig: string) => {
         const { move } = data
 
-        console.log('in handleEnemyAttack', { move });
-
         const result = placeShot({ hit: move, board, ships: placedShips });
 
         // send res
@@ -113,12 +112,18 @@ export function Game({ sharedStates }: { sharedStates: ReturnType<typeof useShar
                 res: String(result)
             }, preSig: sig
         }).then((value => {
-            console.log('in handleEnemyAttack sent a res', { value });
             if (value === null) {
                 console.log('failed to send the result of enemy move.');
                 return
             }
             const { sig } = value;
+            if (result === ShotResult.SUNK) {
+                setScore([score[0], score[1] + 1]);
+                if (score[1] + 1 === availableShipSizes.length) {
+                    setGameOver(true);
+                    setYouWin(false);
+                }
+            }
             setMyLastSig(sig);
             setBoard(board)
             setLastMove(MatchState.RES);
@@ -189,6 +194,10 @@ export function Game({ sharedStates }: { sharedStates: ReturnType<typeof useShar
             enemyBoard[pendingTile as string] = Tile.HIT;
             if (res as ShotResult === ShotResult.SUNK) {
                 setScore([score[0] + 1, score[1]]);
+                if (score[0] + 1 === availableShipSizes.length) {
+                    setGameOver(true);
+                    setYouWin(true);
+                }
             }
         }
         setEnemyBoard(enemyBoard);
@@ -236,6 +245,7 @@ export function Game({ sharedStates }: { sharedStates: ReturnType<typeof useShar
 
     return (
         <div className="sm:w-11/12 md:w-full lg:w-3/4 mx-auto mb-20 py-10 md:py-4 px-1 text-white relative">
+            <GameOver gameOver={gameOver} youWin={youWin}></GameOver>
             {/* Match URI Copy */}
             <div className="absolute start-0 top-0 m-4 px-2 py-1 flex w-fit border rounded border-transparent hover:border-white">
                 <button className="flex gap-1 active:opacity-40 items-center" onClick={() => { navigator.clipboard.writeText(uri as string).catch(() => { }) }}>
@@ -250,8 +260,8 @@ export function Game({ sharedStates }: { sharedStates: ReturnType<typeof useShar
                     <h2 className="font-bold my-2 py-2">{getStateTitle(matchState, lastMove)}</h2>
                 </div>
                 <div className="flex flex-wrap justify-between p-2 gap-0 mb-8 w-full">
-                    <div className="flex flex-col w-full md:w-1/2 items-center mb-4">
-                        <div className={`relative flex p-2 gap-4 mb-2 rounded-xl items-center bg-primary-gray border ${isYourTurn() ? 'border-primary-green' : 'border-transparent'}`}>
+                    <div className="flex flex-col gap-2 w-full md:w-1/2 items-center mb-4">
+                        <div className={`relative flex p-2 gap-4 rounded-xl items-center bg-primary-gray border ${isYourTurn() ? 'border-primary-green' : 'border-transparent'}`}>
                             <p className="text-lg">You</p>
                             <div className={`w-5 h-5 rounded-full border-gray-700 ${isYourTurn() ? 'bg-primary-green' : 'bg-transparent'} border-4`}></div>
                             {isYourTurn() ? <div className="absolute flex -end-1/3 top-1/4 text-primary-green w-fit">
@@ -259,6 +269,9 @@ export function Game({ sharedStates }: { sharedStates: ReturnType<typeof useShar
                                     <path strokeLinecap="round" strokeLinejoin="round" d="M17.25 8.25 21 12m0 0-3.75 3.75M21 12H3" />
                                 </svg>
                             </div> : <></>}
+                        </div>
+                        <div>
+                            <p>Score: {score[0]}/{availableShipSizes.length}</p>
                         </div>
                         <div className={`flex flex-col ${!isYourTurn() ? '' : 'opacity-30'}`}>
                             <Board
@@ -276,7 +289,7 @@ export function Game({ sharedStates }: { sharedStates: ReturnType<typeof useShar
                                 <div className="flex flex-wrap shrink-0 gap-10">
                                     {placedShips.map((fleetShip, index) => (
                                         <div className="w-fit box-border relative gap-1 flex-col" key={index}>
-                                            <p>Ship {fleetShip.tiles.length}</p>
+                                            <p className="">{SHIP_NAMES[fleetShip.tiles.length]}</p>
                                             <div className="flex cursor-pointer border border-transparent rounded">
                                                 <ShipComponent ship={fleetShip} renderSize={8}></ShipComponent>
                                             </div>
@@ -286,8 +299,8 @@ export function Game({ sharedStates }: { sharedStates: ReturnType<typeof useShar
                             </div>
                         </div>
                     </div>
-                    <div className="flex flex-col w-full md:w-1/2 items-center mb-4">
-                        <div className={`relative flex p-2 gap-4 mb-2 rounded-xl items-center bg-primary-gray border ${!isYourTurn() ? 'border-primary-green' : 'border-transparent'}`}>
+                    <div className="flex flex-col gap-2 w-full md:w-1/2 items-center mb-4">
+                        <div className={`relative flex p-2 gap-4 rounded-xl items-center bg-primary-gray border ${!isYourTurn() ? 'border-primary-green' : 'border-transparent'}`}>
                             <p className="text-lg">Enemy</p>
                             <div className={`w-5 h-5 rounded-full border-gray-700 ${!isYourTurn() ? 'bg-primary-green' : 'bg-transparent'} border-4`}></div>
                             {!isYourTurn() ? <div className="absolute flex -start-1/3 top-1/4 text-primary-green w-fit">
@@ -295,6 +308,9 @@ export function Game({ sharedStates }: { sharedStates: ReturnType<typeof useShar
                                     <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 15.75 3 12m0 0 3.75-3.75M3 12h18" />
                                 </svg>
                             </div> : <></>}
+                        </div>
+                        <div>
+                            <p>Score: {score[1]}/{availableShipSizes.length}</p>
                         </div>
                         <div className={`flex flex-col ${isYourTurn() ? '' : 'opacity-30'}`}>
                             <Board
@@ -314,7 +330,7 @@ export function Game({ sharedStates }: { sharedStates: ReturnType<typeof useShar
                                         const ship: Ship = { align: 'horizontal', hits: [], tiles: new Array<string>(shipSize).fill('1-1') }
                                         return (
                                             <div className="w-fit box-border relative gap-1 flex-col" key={index}>
-                                                <p>Ship {ship.tiles.length}</p>
+                                                <p>{SHIP_NAMES[ship.tiles.length]}</p>
                                                 <div className="flex cursor-pointer border border-transparent rounded">
                                                     <ShipComponent ship={ship} renderSize={8}></ShipComponent>
                                                 </div>

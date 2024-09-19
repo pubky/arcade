@@ -46,3 +46,10 @@ export interface Ship {
     tiles: string[],
     hits: string[]
 }
+
+export const SHIP_NAMES: Record<number, string> = {
+    2: 'Destroyer',
+    3: 'Cruiser',
+    4: 'Battleship',
+    5: 'Carrier',
+}
