@@ -5,6 +5,11 @@ interface ModalTicTacToeProps {
   setShowModal: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
+// TODO: Choose whether to be X, O or passive observer
+// TOOD: Get own pubky to be shared
+// TODO: be able to enter opponent's pubky
+// TODO: be able to start game once all the above have been input
+
 export default function ModalTicTacToe({
   showModal,
   setShowModal,

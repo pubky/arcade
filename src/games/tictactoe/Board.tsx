@@ -5,6 +5,13 @@ interface BoardProps {
   setState: React.Dispatch<React.SetStateAction<string>>;
 }
 
+// TODO: Add pubkys of players
+// TODO: Show if you are X, O or passive observer
+// TODO: Show who's turn it is
+// TODO: Poll for opponent's move whilst it is their turn
+// TOOD: Validate opponent's move before updating game state, board and turn
+// TODO: 
+
 export function Board({ setState }: BoardProps) {
   return (
     <div className="flex w-3/4 mx-auto py-12 flex-col items-center justify-center">
