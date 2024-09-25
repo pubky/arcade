@@ -1,17 +1,18 @@
 "use client";
 
-import { useState } from "react";
-import { MainMenu } from "./MainMenu";
+import { GameState } from ".";
 import { Board } from "./Board";
+import { MainMenu } from "./MainMenu";
+import { useSharedState } from "./state";
 
 function App() {
-  const [state, setState] = useState("menu");
+  const sharedState = useSharedState();
   return (
     <div className="App w-full relative">
-      {state === "menu" ? (
-        <MainMenu setState={setState} />
+      {sharedState.states.gameState === GameState.LOBBY ? (
+        <MainMenu sharedState={sharedState} />
       ) : (
-        <Board setState={setState} />
+        <Board sharedState={sharedState} />
       )}
     </div>
   );
