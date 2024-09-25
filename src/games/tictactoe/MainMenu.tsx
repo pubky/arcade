@@ -1,4 +1,4 @@
-import { GameState, LobbyMode } from ".";
+import { GameState, LobbyMode, MatchState } from ".";
 import PubkyArcadeLogo from "./assets/pubky-arcade.png";
 import TicTacToe from "./assets/TicTacToe.png";
 import { useSharedState } from "./state";
@@ -9,7 +9,7 @@ interface MainMenuProps {
 
 export function MainMenu({ sharedState }: MainMenuProps) {
   const { context } = sharedState
-  const { setGameState, setLobbyMode, setUri, setId, setEnemyPubky } = sharedState.setStates
+  const { setGameState, setLobbyMode, setUri, setId, setEnemyPubky, setMatchState } = sharedState.setStates
   const { uri, enemyPubky } = sharedState.states
 
 
@@ -22,6 +22,7 @@ export function MainMenu({ sharedState }: MainMenuProps) {
       const enemyPk = parts[2]
       setId(id)
       setEnemyPubky(enemyPk)
+      setMatchState(MatchState.WAIT)
     } else {
       context.randomBytes(8).then((randomBytes => {
         context.z32_encode(randomBytes).then((id => {

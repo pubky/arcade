@@ -1,5 +1,5 @@
 import { useContext, useState } from "react";
-import { GameState, LobbyMode, TBoard, Square, MatchState, Actor } from ".";
+import { Actor, GameState, LobbyMode, MatchState, Square, TBoard } from ".";
 import { ClientContext } from "../../client";
 import { TicTacToeClient } from "./client";
 
@@ -11,7 +11,7 @@ const newBoard = (): TBoard => {
 export const useSharedState = () => {
     const [gameState, setGameState] = useState(GameState.LOBBY);
     const [lobbyMode, setLobbyMode] = useState(LobbyMode.CREATE);
-    const [matchState, setMatchState] = useState<MatchState>(MatchState.X_MOVE);
+    const [matchState, setMatchState] = useState<MatchState>(MatchState.MOVE);
     // TODO: Actor is determined once in modal before the game starts
     const [actorState, setActorState] = useState<Actor>();
     // TODO: pubky of player X is determined once in modal before the game starts

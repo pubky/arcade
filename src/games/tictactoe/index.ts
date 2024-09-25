@@ -16,8 +16,8 @@ export enum Actor {
 }
 
 export enum MatchState {
-    X_MOVE = 'X_MOVE',
-    O_MOVE = 'O_MOVE',
+    MOVE = 'MOVE',
+    WAIT = 'WAIT',
     FINISH = 'FINISH',
 }
 
@@ -29,4 +29,4 @@ export enum Square {
 
 export type TBoard = Square[][];
 
-export type TRes = {board : TBoard, matchState : MatchState};
+export type TRes = { board: TBoard, matchState: MatchState };
