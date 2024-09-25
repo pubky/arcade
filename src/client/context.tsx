@@ -40,14 +40,15 @@ export function ClientWrapper({ children }: { children: React.ReactNode }) {
     Utils.storage.get('homeserverURL')
   );
 
-  const signUp = async (): Promise<void> => {
-    if (pubky !== null) {
-      const session = await client.session(PublicKey.from(pubky))
+  const signUp = async (): Promise<string> => {
+    const storedKey = Utils.storage.get('pubky')
+    if (storedKey !== null) {
+      const session = await client.session(PublicKey.from(storedKey))
       if (!session) {
         await signOut();
         return await signUp();
       }
-      return;
+      return storedKey;
     }
     const keypair = Keypair.random();
     const secretKey = keypair.secretKey();
@@ -61,8 +62,10 @@ export function ClientWrapper({ children }: { children: React.ReactNode }) {
     Utils.storage.set('pubky', newPubky);
     Utils.storage.set('homeserverURL', newHomeserverURL);
     setSecret(encodedSecret);
-    setPubky(newPubky)
+    setPubky(newPubky);
     setHomeserverURL(newHomeserverURL);
+
+    return newPubky;
   };
 
   const signOut = async (): Promise<void> => {

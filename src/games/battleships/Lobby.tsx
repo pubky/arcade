@@ -54,7 +54,7 @@ export function Lobby({ sharedStates }: { sharedStates: ReturnType<typeof useSha
     const [hostHasStarted, setHostHasStarted] = useState<boolean>(false);
 
     useInterval(() => {
-        if (hostHasStarted) {
+        if (lobbyMode === LobbyMode.CREATE || hostHasStarted) {
             return
         }
         client.get(`matches/${id}/init`, enemyPubky as string, '').then((enemyInit => {
@@ -349,7 +349,7 @@ export function Lobby({ sharedStates }: { sharedStates: ReturnType<typeof useSha
                                 setDropDownSelectedShip(option);
                                 setRemainingShips(remainingShips.concat(Number(option)));
                             }}
-                            options={Object.keys(SHIP_NAMES)}
+                            options={Object.keys(SHIP_NAMES as object)}
                         />
                     </div>
                 </label>)}
@@ -438,7 +438,10 @@ export function Lobby({ sharedStates }: { sharedStates: ReturnType<typeof useSha
                     <div className="flex flex-wrap shrink-0 gap-10">
                         {yourFleet.map((fleetShip, index) => (
                             <div className="w-fit box-border relative gap-1 flex-col" key={index}>
-                                <p className="text-center">{SHIP_NAMES[fleetShip.tiles.length]}</p>
+                                <p className="text-center">{
+                                    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+                                    SHIP_NAMES[fleetShip.tiles.length]
+                                }</p>
                                 <div className={`flex cursor-pointer border rounded
                                     ${index === selectedShipIndex ? '' : 'border-transparent'}
                                 `} onClick={() => setSelectedShipIndex(index === selectedShipIndex ? null : index)}>

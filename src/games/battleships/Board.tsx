@@ -57,7 +57,8 @@ export function Board(input: {
                     key={key}
                     className={`p-0 rounded-sm aspect-square ${getCellColor(inputBoard[key])}
                      ${onCellClick === undefined && selectedShip === null ? 'pointer-events-none' : ''}`}
-                    disabled={onCellClick === undefined && selectedShip === null}
+                    disabled={onCellClick === undefined && selectedShip === null
+                        && ![Tile.MISS, Tile.HIT].includes(inputBoard[key])}
                     onClick={() => {
                         if (onCellClick !== undefined && selectedShip === null) {
                             onCellClick(i, j);

@@ -1,8 +1,8 @@
 export const storage = {
-  get: <T = unknown>(key: string): T | null => {
+  get: (key: string): string | null => {
     const item = localStorage?.getItem(key);
     try {
-      return JSON.parse(item ?? '') as T;
+      return JSON.parse(item ?? '') as string;
     } catch {
       return null;
     }
