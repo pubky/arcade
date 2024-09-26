@@ -13,16 +13,9 @@ interface BoardProps {
   sharedState: ReturnType<typeof useSharedState>
 }
 
-// TODO: Add pubkys of players
-// TODO: Show if you are X, O or passive observer
-// TODO: Show who's turn it is
-// TODO: Poll for opponent's move whilst it is their turn
-// TOOD: Validate opponent's move before updating game state, board and turn
-// TODO: 
-
 export function Board({ sharedState }: BoardProps) {
   const { client } = sharedState
-  const { lobbyMode, board, id, matchState, enemyPubky } = sharedState.states
+  const { lobbyMode, board, id, matchState, enemyPubky, uri } = sharedState.states
   const { setGameState, setBoard, setMatchState } = sharedState.setStates
 
   const [turn, setTurn] = useState(1);
@@ -139,6 +132,9 @@ export function Board({ sharedState }: BoardProps) {
         </div>
       </div>
       <p className="mt-12 text-center text-white text-[64px]">{matchState === MatchState.MOVE ? 'Your' : 'Opponent\'s'} turn</p>
+      <div className="w-full justify-between flex gap-4">
+        <p className="mt-12 text-center text-white text-[12px]">{uri}</p>
+      </div>
     </div >
   );
 }
