@@ -8,6 +8,7 @@ import { useInterval } from "../../utils";
 import OImage from './assets/o.png';
 import XImage from './assets/x.png';
 import { checkWin, makeMove } from "./Game";
+import { GameOver } from "./GameOver";
 
 interface BoardProps {
   sharedState: ReturnType<typeof useSharedState>
@@ -16,10 +17,9 @@ interface BoardProps {
 export function Board({ sharedState }: BoardProps) {
   const { client } = sharedState
   const { lobbyMode, board, id, matchState, enemyPubky, uri } = sharedState.states
-  const { setGameState, setBoard, setMatchState } = sharedState.setStates
+  const { setGameState, setBoard, setMatchState, setWinner } = sharedState.setStates
 
   const [turn, setTurn] = useState(1);
-  const [winner, setWinner] = useState<boolean | null>(false);
 
   const handleMove = (row: number, col: number) => {
     // TODO: isValidMove
@@ -74,67 +74,70 @@ export function Board({ sharedState }: BoardProps) {
   }, 1000)
 
   return (
-    <div className="flex w-3/4 mx-auto py-12 flex-col items-center justify-center">
-      <div className="w-full justify-between flex gap-4">
-        <p className="text-white text-[28px] font-semibold">Tic tac toe</p>
-        <img
-          onClick={() => setGameState(GameState.LOBBY)}
-          className="cursor-pointer w-4 h-4"
-          src={CloseIcon}
-        ></img>
-      </div>
-      <div className="mt-12 flex-col items-center gap-8 inline-flex">
-        <div className="justify-start items-start gap-8 inline-flex">
-          <p className={`text-center text-white text-2xl border-action-blue ${matchState === MatchState.MOVE ? 'border-b-4' : ''}`}>You ({lobbyMode === LobbyMode.CREATE ? 'X' : 'O'})</p>
-          <p className={`text-center text-white text-2xl border-action-blue ${matchState === MatchState.MOVE ? '' : 'border-b-4'}`}>Opponent ({lobbyMode === LobbyMode.CREATE ? 'O' : 'X'})</p>
+    <div className="sm:w-11/12 md:w-full lg:w-3/4 mx-auto mb-20 py-10 md:py-4 px-1 text-white relative">
+            <GameOver sharedState={sharedState}></GameOver>
+      <div className="flex w-3/4 mx-auto py-12 flex-col items-center justify-center">
+        <div className="w-full justify-between flex gap-4">
+          <p className="text-white text-[28px] font-semibold">Tic tac toe</p>
+          <img
+            onClick={() => setGameState(GameState.LOBBY)}
+            className="cursor-pointer w-4 h-4"
+            src={CloseIcon}
+          ></img>
         </div>
-        {/* <div className="justify-start items-center gap-12 inline-flex">
-          <div className="flex-col justify-start items-center inline-flex">
-            <div className="text-center text-white text-opacity-30 text-[21px]">
-              You
-            </div>
-            <div className="text-center text-white text-2xl">0</div>
+        <div className="mt-12 flex-col items-center gap-8 inline-flex">
+          <div className="justify-start items-start gap-8 inline-flex">
+            <p className={`text-center text-white text-2xl border-action-blue ${matchState === MatchState.MOVE ? 'border-b-4' : ''}`}>You ({lobbyMode === LobbyMode.CREATE ? 'X' : 'O'})</p>
+            <p className={`text-center text-white text-2xl border-action-blue ${matchState === MatchState.MOVE ? '' : 'border-b-4'}`}>Opponent ({lobbyMode === LobbyMode.CREATE ? 'O' : 'X'})</p>
           </div>
-          <div className="w-px h-14 bg-white bg-opacity-10" />
-          <div className="flex-col justify-start items-center inline-flex">
-            <div className="text-center text-white text-opacity-30 text-[21px]">
-              Tie
+          {/* <div className="justify-start items-center gap-12 inline-flex">
+            <div className="flex-col justify-start items-center inline-flex">
+              <div className="text-center text-white text-opacity-30 text-[21px]">
+                You
+              </div>
+              <div className="text-center text-white text-2xl">0</div>
             </div>
-            <div className="text-center text-white text-2xl">0</div>
-          </div>
-          <div className="w-px h-14 bg-white bg-opacity-10" />
-          <div className="flex-col justify-start items-center inline-flex">
-            <div className="text-center text-white text-opacity-30 text-[21px]">
-              Player O
+            <div className="w-px h-14 bg-white bg-opacity-10" />
+            <div className="flex-col justify-start items-center inline-flex">
+              <div className="text-center text-white text-opacity-30 text-[21px]">
+                Tie
+              </div>
+              <div className="text-center text-white text-2xl">0</div>
             </div>
-            <div className="text-center text-white text-2xl">0</div>
-          </div>
-        </div> */}
-        <div className="mt-6 relative">
-          <img src={boardImg} />
-          <div className="absolute top-0 start-0 w-full h-full grid grid-cols-3 text-white">
-            {board.map((rowItem, row) => {
-              return rowItem.map((cellItem, col) => {
-                switch (cellItem) {
-                  case Square.EMPTY:
-                    return (<div key={`${row}-${col}`}
-                      className={`p-6 w-36 h-36 
-                        ${matchState === MatchState.MOVE ? 'cursor-pointer' : ''}`}
-                      onClick={matchState === MatchState.MOVE ? () => handleMove(row, col) : undefined}></div>);
-                  case Square.O:
-                    return (<div key={`${row}-${col}`} className="p-6 h-fit"><img className="w-fit h-fit" src={OImage}></img></div>);
-                  case Square.X:
-                    return (<div key={`${row}-${col}`} className="p-6 h-fit"><img className="w-fit h-fit" src={XImage}></img></div>)
-                }
-              })
-            }).flat()}
+            <div className="w-px h-14 bg-white bg-opacity-10" />
+            <div className="flex-col justify-start items-center inline-flex">
+              <div className="text-center text-white text-opacity-30 text-[21px]">
+                Player O
+              </div>
+              <div className="text-center text-white text-2xl">0</div>
+            </div>
+          </div> */}
+          <div className="mt-6 relative">
+            <img src={boardImg} />
+            <div className="absolute top-0 start-0 w-full h-full grid grid-cols-3 text-white">
+              {board.map((rowItem, row) => {
+                return rowItem.map((cellItem, col) => {
+                  switch (cellItem) {
+                    case Square.EMPTY:
+                      return (<div key={`${row}-${col}`}
+                        className={`p-6 w-36 h-36 
+                          ${matchState === MatchState.MOVE ? 'cursor-pointer' : ''}`}
+                        onClick={matchState === MatchState.MOVE ? () => handleMove(row, col) : undefined}></div>);
+                    case Square.O:
+                      return (<div key={`${row}-${col}`} className="p-6 h-fit"><img className="w-fit h-fit" src={OImage}></img></div>);
+                    case Square.X:
+                      return (<div key={`${row}-${col}`} className="p-6 h-fit"><img className="w-fit h-fit" src={XImage}></img></div>)
+                  }
+                })
+              }).flat()}
+            </div>
           </div>
         </div>
-      </div>
-      <p className="mt-12 text-center text-white text-[64px]">{matchState === MatchState.MOVE ? 'Your' : 'Opponent\'s'} turn</p>
-      <div className="w-full justify-between flex gap-4">
-        <p className="mt-12 text-center text-white text-[12px]">{uri}</p>
-      </div>
+        <p className="mt-12 text-center text-white text-[64px]">{matchState === MatchState.MOVE ? 'Your' : 'Opponent\'s'} turn</p>
+        <div className="w-full justify-between flex gap-4">
+          <p className="mt-12 text-center text-white text-[12px]">{uri}</p>
+        </div>
+      </div >
     </div >
   );
 }

@@ -25,6 +25,7 @@ export const useSharedState = () => {
     const [enemyPubky, setEnemyPubky] = useState<string | null>(null);
     const [board, setBoard] = useState<TBoard>(newBoard());
     const [currentPlayer, setCurrentPlayer] = useState<Square>(Square.X);
+    const [winner, setWinner] = useState<boolean>(false);
     // const [boardHash, setBoardHash] = useState<string | null>(null);
 
     // settings in lobby
@@ -59,6 +60,7 @@ export const useSharedState = () => {
             enemyPubky,
             board,
             currentPlayer,
+            winner
         },
         setStates: {
             setGameState,
@@ -72,6 +74,7 @@ export const useSharedState = () => {
             setEnemyPubky,
             setBoard,
             setCurrentPlayer,
+            setWinner
         }
     }
 }
