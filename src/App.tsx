@@ -60,6 +60,7 @@ const MainMenu = ({ selectGame }: { selectGame: (key: string) => void }) => {
   const gamesSectionRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    console.log('signing up...')
     context.signUp().
       then(pubky => console.log("successfully signed up, your key is ", pubky)).
       catch(() => console.log("error signing up"));
