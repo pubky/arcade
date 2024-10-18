@@ -26,6 +26,7 @@ $ cp example.env .env
 Then build and run the project
 
 ```
+$ npm install
 $ npm run build
 $ npm run preview
 ```
