@@ -76,13 +76,15 @@ const MainMenu = ({ selectGame }: { selectGame: (key: string) => void }) => {
   return (
     <div>
       <div className="flex w-[1200px] mx-auto p-12 py-40 mt-24 flex-col items-center justify-center">
-        <img
-          className="sticky top-[40px] p-4 rounded-2xl backdrop-blur-[14px]"
-          src={PubkyArcadeLogo}
-        />
+        <div className="flex w-full justify-center sticky top-0 backdrop-blur-[14px] z-50">
+          <img
+            className="p-4 rounded-2xl"
+            src={PubkyArcadeLogo}
+          />
+        </div>
 
         <p className="px-52 text-center text-white text-3xl font-light py-[40px]">
-          Enjoy thrilling turn-based games with real-time data updates using the{" "}
+          Enjoy turn-based games using the{" "}
           <span className="font-bold">PUBKY protocol</span>. Classic arcade fun
           meets modern tech!
         </p>
@@ -96,7 +98,7 @@ const MainMenu = ({ selectGame }: { selectGame: (key: string) => void }) => {
         <div className="mt-64 flex flex-col justify-center items-center gap-6">
           <img src={Games} />
           <p className="text-center text-white text-opacity-80 text-2xl font-normal leading-[30px] tracking-wide">
-            Dive into the Action with Our Exciting Arcade Games!
+            Dive into the Action with Exciting Games!
           </p>
           <div className="w-full flex justify-between mt-12">
             <div className="bg-[url('./assets/battleshipBg.png')] bg-cover bg-center w-[524px] h-[300px] flex items-center justify-center">
@@ -140,15 +142,15 @@ const MainMenu = ({ selectGame }: { selectGame: (key: string) => void }) => {
         <div className="mt-40 flex flex-col justify-center items-center">
           <img src={PUBKY} />
           <p className="px-28 text-opacity-60 text-center text-white text-2xl font-normal py-[40px]">
-            Pubky Core is the decentralized engine behind Pubky Arcade Games,
+            Pubky Core is the decentralized protocol behind Pubky Arcade Games,
             providing secure, transparent, and user-controlled data management
             for every action you take. Whether you're creating, updating, or
             sharing data. Want to explore how Pubky Core can power your own
             projects?
           </p>
-          <button className="m-2 px-12 py-4 bg-primary-pink text-white font-semibold rounded-full shadow-md hover:opacity-80">
+          <a href="https://pubky.org" className="m-2 px-12 py-4 bg-primary-pink text-white font-semibold rounded-full shadow-md hover:opacity-80">
             LEARN MORE
-          </button>
+          </a>
         </div>
       </div>
     </div>
