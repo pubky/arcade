@@ -33,26 +33,22 @@ The Pubky Arcade demonstrates how a simple, familiar game format can serve as an
 
 - **Node.js**: Version 14.x or above is required.
 - **npm**: Version 6.x or above.
-- **Pubky SDK**: Required for integration with Pubky Core.
 
 Ensure that all dependencies are installed and the system requirements are met before proceeding.
 
 ## Environment Configuration
-
-Before running the project, make sure to configure the following environment variables in the `.env` file:
-
-- `PUBKY_API_KEY`: The API key for Pubky Core integration.
-- `HOMESERVER_URL`: URL for the homeserver that will store and synchronize game states.
-- `REACT_APP_OPENAI_API_KEY`: API key for accessing OpenAI APIs for AI features (if applicable).
-- `LIGHTNING_NODE_URL`: The URL for the Lightning Network node used for payments.
-
-Project is using default configuration, so everything that normally works for a React + Vite project should work out of the box.
 
 First, copy the env file:
 
 ```sh
 $ cp example.env .env
 ```
+
+Before running the project, make sure to configure the following environment variables in the `.env` file:
+
+- `VITE_HOMESERVER_PUBKY`: The homeserver's pubky.
+
+This project is using default configuration, so everything that normally works for a React + Vite project should work out of the box.
 
 Install dependencies and start the development server:
 
@@ -68,7 +64,7 @@ Copy the env file:
 $ cp example.env .env
 ```
 
-Then build and run the project:
+Then install dependencies, build and run the project:
 
 ```sh
 $ npm install
