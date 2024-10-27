@@ -1,29 +1,30 @@
-import { MatchState } from '.';
+import { MatchState, Square } from '.';
 import PubkyArcadeLogo from './assets/pubky-arcade.png';
-import YouLoseImage from './assets/x.png';  // TODO: CHANGE
+import XWin from './assets/x_wins.png';
+import OWin from './assets/o_wins.png';
 import YouWinImage from './assets/you-win.png';
 import { useSharedState } from "./state";
-
-
 
 interface BoardProps {
     sharedState: ReturnType<typeof useSharedState>
 }
 
 export function GameOver({ sharedState }: BoardProps) {
-    const { matchState, winner } = sharedState.states
+    const { matchState, winner, board } = sharedState.states
     const { setMatchState } = sharedState.setStates
-    // const { gameOver, youWin } = props;
     if (matchState !== MatchState.FINISH) {
         return null
     }
+
+    const xCount = board.flat().filter(square => square === Square.X).length;
+    const oCount = board.flat().filter(square => square === Square.O).length;
 
     return (
         (
             <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
                 <div className="bg-primary-gray mt-12 flex flex-col w-3/4 md:w-1/3 rounded-lg p-8 shadow-lg relative gap-4">
                     <img src={PubkyArcadeLogo}></img>
-                    <img src={winner ? YouWinImage : YouLoseImage}></img>
+                    <img src={winner ? YouWinImage : (xCount > oCount ? XWin : OWin)}></img>
                     <p>
                         {winner ?
                             'As you celebrate your win, take a moment to learn more about Pubky' :
